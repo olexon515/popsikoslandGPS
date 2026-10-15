@@ -73,9 +73,45 @@
   /* ---------- Map ---------- */
   #map { flex: 1; height: 100%; background: #1d2a1d; }
   .leaflet-container { font-family: inherit; }
+  /* Зберігаємо чіткі пікселі Minecraft-карти під час масштабування. */
+  .leaflet-image-layer {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    -ms-interpolation-mode: nearest-neighbor;
+  }
   .node-label { background: rgba(255,255,255,.92); border: none; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.4); font-weight: 500; color: var(--text); padding: 2px 6px; }
+  .destination-pin { font-size: 29px; line-height: 32px; text-align: center; filter: drop-shadow(0 1px 2px rgba(0,0,0,.65)); }
+  .pin-help { margin-bottom: 8px; font-weight: 500; color: #3c4043; }
   .arrow-icon { color: #fff; font-size: 14px; text-shadow: 0 0 3px #000, 0 0 3px #000; line-height: 14px; text-align: center; }
   .popup-btns button { margin: 4px 4px 0 0; padding: 5px 10px; border: 1px solid var(--primary); background: #fff; color: var(--primary); border-radius: 12px; cursor: pointer; font-size: 12px; }
+
+  .tool-toggle, .secondary-btn {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: #fff; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .tool-toggle { margin-top: 12px; text-align: left; }
+  .secondary-btn { margin-top: 8px; }
+  .tool-panel { margin-top: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fafbfc; }
+  .tool-panel[hidden] { display: none !important; }
+  .tool-panel h2 { margin: 0 0 8px; font-size: 15px; }
+  .tool-help, .tool-status { margin: 6px 0 10px; color: var(--text-2); font-size: 12px; line-height: 1.45; }
+  .tool-status { color: var(--primary-dark); font-weight: 500; }
+  .tool-panel .field { margin-bottom: 10px; }
+  .tool-panel input[type="text"], .tool-panel input[type="number"], .tool-panel select {
+    width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--border);
+    border-radius: 8px; background: #fff; color: var(--text); font-size: 14px;
+  }
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tool-grid .field { min-width: 0; }
+  .tool-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 8px 0; }
+  .tool-danger { border-color: #efc5c1; color: #b3261e; }
+  .tool-list { margin: 8px 0; padding: 0; list-style: none; font-size: 12px; }
+  .tool-list li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #e5e7eb; }
+  .tool-list li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .tool-list li button { border: 1px solid var(--border); border-radius: 6px; background: #fff; padding: 3px 7px; cursor: pointer; }
+  .tool-panel hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+  .tool-panel .file-input { display: none; }
+  .mode-active { background: #e8f0fe; border-color: var(--primary); color: var(--primary-dark); }
 
   /* ---------- Mobile: bottom sheet ---------- */
   @media (max-width: 768px) {
@@ -110,9 +146,55 @@
       <div class="field"><label for="vehicleSel">ТИП ТРАНСПОРТУ</label><select id="vehicleSel"></select></div>
       <button id="calcBtn">Розрахувати маршрут</button>
       <div id="info"></div>
+      <button class="tool-toggle" id="toggleCalibrationBtn" type="button">🧭 Калібрування карти</button>
+      <div class="tool-panel" id="calibrationPanel" hidden>
+        <h2>Прив'язка до Minecraft</h2>
+        <p class="tool-help">Увімкни вибір, клацни на добре впізнавану точку на зображенні та введи її X і Z з екрана F3. Додай щонайменше 2 точки, рознесені по карті; 3–4 точки зазвичай дають кращу перевірку.</p>
+        <button class="secondary-btn" id="selectCalibrationPixelBtn" type="button">1. Вибрати місце на карті</button>
+        <div class="tool-status" id="calibrationStatus" aria-live="polite">Точки прив'язки ще не додані.</div>
+        <div class="tool-grid">
+          <div class="field"><label for="calibrationXInput">Координата X (F3)</label><input id="calibrationXInput" type="number" step="any" placeholder="Напр. 245"></div>
+          <div class="field"><label for="calibrationZInput">Координата Z (F3)</label><input id="calibrationZInput" type="number" step="any" placeholder="Напр. -680"></div>
+        </div>
+        <button class="secondary-btn" id="addCalibrationPointBtn" type="button">2. Додати точку прив'язки</button>
+        <ul class="tool-list" id="calibrationPointsList"></ul>
+        <button class="secondary-btn" id="applyCalibrationBtn" type="button">Застосувати калібрування</button>
+        <button class="secondary-btn" id="clearCalibrationPointsBtn" type="button">Очистити точки прив'язки</button>
+        <button class="secondary-btn" id="resetCalibrationBtn" type="button">Скинути калібрування</button>
+      </div>
+
+      <button class="tool-toggle" id="toggleEditorBtn" type="button">🛠️ Редактор точок і доріг</button>
+      <div class="tool-panel" id="editorPanel" hidden>
+        <h2>Редактор мережі</h2>
+        <p class="tool-help">Спочатку відкалібруй карту. Позначай точки на кожному перехресті, кінцях дороги та її поворотах; з'єднуй сусідні точки дорогами. Дані автоматично зберігаються в цьому браузері.</p>
+        <div class="field"><label for="newNodeNameInput">Назва нової точки</label><input id="newNodeNameInput" type="text" placeholder="Напр. Перехрестя біля порту" maxlength="80"></div>
+        <button class="secondary-btn" id="addNodeModeBtn" type="button">Додати точку: клацни на карті</button>
+        <div class="tool-status" id="editorStatus" aria-live="polite">Редактор готовий.</div>
+        <hr>
+        <h2>Створити дорогу між точками</h2>
+        <div class="tool-grid">
+          <div class="field"><label for="roadFromSel">Від точки</label><select id="roadFromSel"></select></div>
+          <div class="field"><label for="roadToSel">До точки</label><select id="roadToSel"></select></div>
+        </div>
+        <div class="field"><label for="roadTypeSel">Тип дороги</label><select id="roadTypeSel"><option value="all">Відкрита · весь транспорт</option><option value="A_only">Вузька · легковий транспорт</option><option value="B_only">Вантажний транспорт</option></select></div>
+        <label class="tool-checkbox"><input type="checkbox" id="roadOneWayInput"> Односторонній рух (від «Від точки» до «До точки»)</label>
+        <button class="secondary-btn" id="addRoadBtn" type="button">Додати дорогу</button>
+        <div class="field" style="margin-top:12px"><label for="deleteRoadSel">Існуюча дорога</label><select id="deleteRoadSel"></select></div>
+        <button class="secondary-btn tool-danger" id="deleteRoadBtn" type="button">Видалити вибрану дорогу</button>
+        <div class="field" style="margin-top:12px"><label for="deleteNodeSel">Точка для видалення</label><select id="deleteNodeSel"></select></div>
+        <button class="secondary-btn tool-danger" id="deleteNodeBtn" type="button">Видалити точку та її дороги</button>
+        <hr>
+        <button class="secondary-btn tool-danger" id="clearNetworkBtn" type="button">Очистити всі приклади точок і доріг</button>
+        <button class="secondary-btn" id="exportDataBtn" type="button">Експортувати дані в JSON</button>
+        <label class="secondary-btn" for="importDataInput" style="display:block;text-align:center">Імпортувати JSON</label>
+        <input class="file-input" type="file" id="importDataInput" accept=".json,application/json">
+      </div>
+
       <div class="legend">
+        <div class="pin-help">📍 ПКМ на комп’ютері або довге натискання на карті: поставити пункт призначення</div>
         <div><i style="border-color:#9aa0a6"></i>Відкрита дорога (весь транспорт)</div>
         <div><i style="border-color:#f9ab00;border-top-style:dashed"></i>Лише легкий транспорт (вузька вулиця)</div>
+        <div><i style="border-color:#34a853;border-top-style:dashed"></i>Лише вантажний транспорт</div>
         <div>➤ Односторонній рух (стрілка показує напрямок)</div>
       </div>
     </div>
@@ -126,16 +208,16 @@
    КОНФІГУРАЦІЯ ДАНИХ  —  редагуй цей розділ для свого світу
    ===================================================================== */
 
-// Фонове зображення + область світу Minecraft (у блоках), яку воно покриває.
-// Лівий верхній кут зображення = (xMin, zMin), правий нижній = (xMax, zMax).
-// Файл map.png має лежати поруч з index.html (або встав сюди повне https:// посилання).
-// УВАГА: значення MAP_AREA зараз умовні (1 піксель = 1 блок, центр = 0,0).
-// Постав реальні координати кутів твоєї карти, інакше координати вузлів не збігатимуться.
+// Файл map.png має лежати поруч з index.html.
+// Карту можна відкалібрувати через панель «Калібрування карти» без редагування коду.
 const MAP_IMAGE_URL = "map.png";
-const MAP_AREA = { xMin: -904, xMax: 904, zMin: -800, zMax: 800 };
+// Розмір саме цього map.png. Якщо заміниш зображення іншим, онови ці два числа.
+const MAP_IMAGE_WIDTH = 1808;
+const MAP_IMAGE_HEIGHT = 1600;
+const STORAGE_KEY = "popsikosland-gps-data-v2";
 
-// Вузли / станції: id -> назва та координати X/Z у блоках Minecraft.
-const NODES = {
+// Демонстраційні дані. Їх можна очистити кнопкою в редакторі.
+const DEFAULT_NODES = {
   spawn:   { name: "Спавн",        x: 31,   z: 240  },
   cross1:  { name: "Перехрестя_1", x: 191,  z: 240  },
   city:    { name: "Місто",        x: -39,  z: -60  },
@@ -143,46 +225,76 @@ const NODES = {
   village: { name: "Село",         x: -304, z: 450  },
   harbor:  { name: "Порт",         x: -424, z: -470 }
 };
-
-// Типи транспорту та які типи доріг їм дозволені.
-//   тип дороги "all"    -> весь транспорт
-//   тип дороги "A_only" -> вузька вулиця, лише легкий транспорт
-//   тип дороги "B_only" -> (приклад) лише для вантажівок
-const VEHICLES = {
-  A: { label: "Варіант A – Легковий транспорт", short: "легковий транспорт", allowed: ["all", "A_only", "B_only"] },
-  B: { label: "Варіант B – Вантажівка",         short: "вантажівка",         allowed: ["all", "B_only"] }
+const DEFAULT_ROADS = [
+  { from: "spawn",   to: "cross1", type: "all" },
+  { from: "cross1",  to: "city",   type: "A_only" },
+  { from: "cross1",  to: "mill",   type: "all" },
+  { from: "mill",    to: "city",   type: "all", via: [[191, -60]] },
+  { from: "city",    to: "harbor", type: "all", oneWay: true },
+  { from: "harbor",  to: "mill",   type: "all", via: [[-200, -470], [191, -470]] },
+  { from: "harbor",  to: "spawn",  type: "all", oneWay: true, via: [[-200, 100]] },
+  { from: "spawn",   to: "village", type: "all" },
+  { from: "village", to: "cross1", type: "A_only", via: [[-100, 300]] }
+];
+// За замовчуванням одна одиниця зображення дорівнює одному блоку, як було раніше.
+// Після калібрування X = scaleX * pixelX + offsetX; Z = scaleZ * pixelY + offsetZ.
+const DEFAULT_CALIBRATION = {
+  scaleX: 1, offsetX: -MAP_IMAGE_WIDTH / 2,
+  scaleZ: 1, offsetZ: -MAP_IMAGE_HEIGHT / 2
 };
 
-// Дороги (ребра графа).
-//   from / to : id вузлів
-//   type      : тип дороги (див. VEHICLES)
-//   oneWay    : true  -> рух лише від from до to
-//               false -> двосторонній (за замовчуванням)
-//   via       : необов'язково [[x,z], ...] точки вигину, щоб дорога не була прямою
-//   weight    : необов'язково; за замовчуванням — довжина дороги в блоках
-const ROADS = [
-  { from: "spawn",   to: "cross1", type: "all" },
-  { from: "cross1",  to: "city",   type: "A_only" },                         // короткий вузький шлях: вантажівкам заборонено
-  { from: "cross1",  to: "mill",   type: "all" },                            // об'їзд для вантажівок, частина 1
-  { from: "mill",    to: "city",   type: "all", via: [[191, -60]] },          // об'їзд для вантажівок, частина 2 (довший)
-  { from: "city",    to: "harbor", type: "all", oneWay: true },               // односторонній: лише Місто -> Порт
-  { from: "harbor",  to: "mill",   type: "all", via: [[-200, -470], [191, -470]] },
-  { from: "harbor",  to: "spawn",   type: "all", oneWay: true, via: [[-200, 100]] }, // односторонній шлях назад на спавн
-  { from: "spawn",   to: "village", type: "all" },
-  { from: "village", to: "cross1",  type: "A_only", via: [[-100, 300]] }      // вузький провулок
-];
+let NODES = JSON.parse(JSON.stringify(DEFAULT_NODES));
+let ROADS = JSON.parse(JSON.stringify(DEFAULT_ROADS));
+let calibration = { ...DEFAULT_CALIBRATION };
+let calibrationPoints = [];
+try {
+  const savedText = localStorage.getItem(STORAGE_KEY);
+  if (savedText) {
+    const saved = JSON.parse(savedText);
+    if (saved && saved.nodes && typeof saved.nodes === "object" && !Array.isArray(saved.nodes)) NODES = saved.nodes;
+    if (saved && Array.isArray(saved.roads)) ROADS = saved.roads;
+    if (saved && saved.calibration && [saved.calibration.scaleX, saved.calibration.offsetX, saved.calibration.scaleZ, saved.calibration.offsetZ].every(Number.isFinite) && saved.calibration.scaleX !== 0 && saved.calibration.scaleZ !== 0) {
+      calibration = { ...saved.calibration };
+    }
+    if (saved && Array.isArray(saved.calibrationPoints)) calibrationPoints = saved.calibrationPoints.filter(p => p && [p.px, p.py, p.x, p.z].every(Number.isFinite));
+  }
+} catch (error) {
+  console.warn("Could not load saved map data", error);
+}
+
+// Тип дороги визначає, який транспорт нею може їхати.
+const VEHICLES = {
+  A: { label: "Варіант A – Легковий транспорт", short: "легковий транспорт", allowed: ["all", "A_only"] },
+  B: { label: "Варіант B – Вантажівка", short: "вантажівка", allowed: ["all", "B_only"] }
+};
+
+// Дороги між вузлами. Повороти можна задавати як via: [[X, Z], ...].
+// Для редактора додавай точки і з'єднуй сусідні точки, особливо на поворотах.
 
 // Відступ на мобільному, щоб маршрут не ховався за нижньою панеллю (px)
 const MOBILE_ROUTE_PADDING = { top: 60, left: 30, right: 30, bottom: 70 + 40 };
 
 /* =====================================================================
    COORDINATE HELPERS
-   Leaflet CRS.Simple: lat = vertical, lng = horizontal.
-   lng = X.  lat = -Z, so that North (-Z) is up like on an in-game map
-   (Z still acts as the latitude axis, just sign-flipped for screen up).
+   Leaflet працює в координатах пікселів зображення: (0,0) — верхній лівий кут.
+   Калібрування переводить пікселі карти в координати Minecraft X/Z.
    ===================================================================== */
-const toLatLng = (x, z) => L.latLng(-z, x);
+const pixelToLatLng = (px, py) => L.latLng(-py, px);
+const toLatLng = (x, z) => {
+  const px = (x - calibration.offsetX) / calibration.scaleX;
+  const py = (z - calibration.offsetZ) / calibration.scaleZ;
+  return pixelToLatLng(px, py);
+};
+const mapToWorld = latlng => {
+  const px = latlng.lng;
+  const py = -latlng.lat;
+  return {
+    x: calibration.scaleX * px + calibration.offsetX,
+    z: calibration.scaleZ * py + calibration.offsetZ
+  };
+};
 const nodeLL = id => toLatLng(NODES[id].x, NODES[id].z);
+const pixelIsOnMap = (px, py) => px >= 0 && px <= MAP_IMAGE_WIDTH && py >= 0 && py <= MAP_IMAGE_HEIGHT;
 
 /* =====================================================================
    GRAPH + PATHFINDING (Dijkstra, directed edges, per-vehicle filtering)
@@ -203,7 +315,7 @@ function buildGraph() {
   });
   return adj;
 }
-const GRAPH = buildGraph();
+let GRAPH = buildGraph();
 
 function dijkstra(start, end, vehicleKey) {
   const allowed = new Set(vehicleKey ? VEHICLES[vehicleKey].allowed : null);
@@ -228,25 +340,111 @@ function dijkstra(start, end, vehicleKey) {
   return { nodes, edges, distance: d[end] };
 }
 
+// Геометрія звичайного маршруту в координатах світу [X, Z].
+function routeGeometryPoints(route) {
+  if (!route.edges.length) {
+    const n = NODES[route.nodes[0]];
+    return [[n.x, n.z]];
+  }
+  const points = [];
+  route.edges.forEach((edge, i) => {
+    edge.points.forEach((point, j) => {
+      if (i === 0 || j > 0) points.push(point);
+    });
+  });
+  return points;
+}
+
+// Знаходить найкоротший шлях від вузла до довільної точки на карті.
+// Маршрут іде дорожньою мережею до найближчої придатної проєкції,
+// а останній короткий відрізок з'єднує дорогу з точною координатою шпильки.
+function routeToCoordinate(start, destination, vehicleKey) {
+  const pin = [destination.x, destination.z];
+  const allowed = new Set(VEHICLES[vehicleKey].allowed);
+  const routeCache = new Map();
+  const getRoute = nodeId => {
+    if (!routeCache.has(nodeId)) routeCache.set(nodeId, dijkstra(start, nodeId, vehicleKey));
+    return routeCache.get(nodeId);
+  };
+
+  // Важливо: спочатку прив'язуємо шпильку до найближчого ДОСТУПНОГО
+  // сегмента дороги, а не мінімізуємо суму маршруту й довгого зрізу напряму.
+  // Інакше алгоритм може обрати дорогу біля старту й намалювати майже пряму
+  // лінію від старту до шпильки, ігноруючи ближчу до шпильки дорогу.
+  let best = null;
+  const EPSILON = 1e-6;
+
+  for (const [fromId, outgoing] of Object.entries(GRAPH)) {
+    const baseRoute = getRoute(fromId);
+    if (!baseRoute) continue;
+
+    for (const edge of outgoing) {
+      if (!allowed.has(edge.type)) continue;
+      const points = edge.points;
+      let geometryLength = 0;
+      for (let i = 1; i < points.length; i++) {
+        geometryLength += dist(points[i - 1], points[i]);
+      }
+      if (!geometryLength) continue;
+
+      let travelled = 0;
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i], b = points[i + 1];
+        const vx = b[0] - a[0], vz = b[1] - a[1];
+        const segmentLengthSquared = vx * vx + vz * vz;
+        const segmentLength = Math.sqrt(segmentLengthSquared);
+        if (!segmentLength) continue;
+
+        const t = Math.max(0, Math.min(1,
+          ((pin[0] - a[0]) * vx + (pin[1] - a[1]) * vz) / segmentLengthSquared
+        ));
+        const projected = [a[0] + t * vx, a[1] + t * vz];
+        const partialGeometryLength = travelled + segmentLength * t;
+        const partialRoadCost = edge.weight * (partialGeometryLength / geometryLength);
+        const connectorLength = dist(projected, pin);
+        const totalDistance = baseRoute.distance + partialRoadCost + connectorLength;
+
+        // Формуємо геометрію: попередній маршрут по графу, відрізок дороги
+        // до проєкції, і лише коротке фінальне з'єднання до точної шпильки.
+        const coordinates = routeGeometryPoints(baseRoute);
+        for (let j = 1; j <= i; j++) coordinates.push(points[j]);
+        coordinates.push(projected);
+        coordinates.push(pin);
+
+        const isCloserToPin = !best || connectorLength < best.connectorDistance - EPSILON;
+        const sameRoadDistance = best && Math.abs(connectorLength - best.connectorDistance) <= EPSILON;
+        if (isCloserToPin || (sameRoadDistance && totalDistance < best.distance)) {
+          best = {
+            nodes: baseRoute.nodes,
+            edges: baseRoute.edges,
+            distance: totalDistance,
+            connectorDistance: connectorLength,
+            coordinates
+          };
+        }
+        travelled += segmentLength;
+      }
+    }
+  }
+
+  if (best) delete best.connectorDistance;
+  return best;
+}
+
 /* =====================================================================
-   MAP SETUP
+   MAP SETUP + EDITOR LAYERS
    ===================================================================== */
 const mobileQuery = window.matchMedia("(max-width: 768px)");
 const isMobile = () => mobileQuery.matches;
-
 const map = L.map("map", {
   crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomControl: false,
   zoomSnap: 0.25, attributionControl: false
 });
+// Карта розташована в координатах пікселів оригінального зображення.
+const imageBounds = L.latLngBounds(L.latLng(-MAP_IMAGE_HEIGHT, 0), L.latLng(0, MAP_IMAGE_WIDTH));
+L.imageOverlay(MAP_IMAGE_URL, imageBounds).addTo(map);
+map.fitBounds(imageBounds);
 
-const mapBounds = L.latLngBounds(
-  toLatLng(MAP_AREA.xMin, MAP_AREA.zMax),
-  toLatLng(MAP_AREA.xMax, MAP_AREA.zMin)
-);
-L.imageOverlay(MAP_IMAGE_URL, mapBounds).addTo(map);
-map.fitBounds(mapBounds);
-
-// Zoom control: bottom-right on desktop, top-right on mobile (clear of the bottom sheet)
 let zoomCtl = null;
 function placeZoomControl() {
   if (zoomCtl) map.removeControl(zoomCtl);
@@ -254,53 +452,579 @@ function placeZoomControl() {
 }
 placeZoomControl();
 
-// Draw road network (faint) + node markers
 const ROAD_STYLE = { all: "#9aa0a6", A_only: "#f9ab00", B_only: "#34a853" };
 const roadLayer = L.layerGroup().addTo(map);
-ROADS.forEach(r => {
-  const e = GRAPH[r.from].find(x => x.road === r);
-  const latlngs = e.points.map(p => toLatLng(p[0], p[1]));
-  L.polyline(latlngs, {
-    color: ROAD_STYLE[r.type] || "#9aa0a6", weight: 3, opacity: .75,
-    dashArray: r.type === "all" ? null : "8 6"
-  }).addTo(roadLayer);
-  if (r.oneWay) {
-    const a = e.points[0], b = e.points[1];
-    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    const angle = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
-    L.marker(toLatLng(mid[0], mid[1]), {
-      interactive: false,
-      icon: L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
-        html: `<div class="arrow-icon" style="transform:rotate(${angle}deg)">➤</div>` })
-    }).addTo(roadLayer);
-  }
-});
-
+const nodeLayer = L.layerGroup().addTo(map);
+const calibrationLayer = L.layerGroup().addTo(map);
+let routeLine = null;
 const fromSel = document.getElementById("fromSel");
 const toSel = document.getElementById("toSel");
 const vehicleSel = document.getElementById("vehicleSel");
+const roadFromSel = document.getElementById("roadFromSel");
+const roadToSel = document.getElementById("roadToSel");
+const deleteRoadSel = document.getElementById("deleteRoadSel");
+const deleteNodeSel = document.getElementById("deleteNodeSel");
+const PIN_DESTINATION_KEY = "__map_pin_destination__";
+let pinDestination = null;
+let pinMarker = null;
+let lastNamedDestination = null;
+let lastPinActionAt = 0;
+Object.entries(VEHICLES).forEach(([key, vehicle]) => vehicleSel.add(new Option(vehicle.label, key)));
 
-Object.entries(NODES).forEach(([id, n]) => {
-  const m = L.circleMarker(nodeLL(id), { radius: 7, color: "#fff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1 }).addTo(map);
-  m.bindTooltip(n.name, { permanent: true, direction: "top", offset: [0, -8], className: "node-label" });
-  const pop = document.createElement("div");
-  pop.innerHTML = `<b>${n.name}</b><br>X: ${n.x}, Z: ${n.z}<div class="popup-btns"><button data-a="from">Звідси</button><button data-a="to">Сюди</button></div>`;
-  pop.querySelector('[data-a="from"]').onclick = () => { fromSel.value = id; m.closePopup(); };
-  pop.querySelector('[data-a="to"]').onclick = () => { toSel.value = id; m.closePopup(); };
-  m.bindPopup(pop);
-  [fromSel, toSel].forEach(sel => sel.add(new Option(n.name, id)));
+function saveAppData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: 2, nodes: NODES, roads: ROADS, calibration, calibrationPoints
+    }));
+  } catch (error) {
+    console.warn("Could not save map data in this browser", error);
+  }
+}
+
+function populateSelect(select, entries, desiredValue) {
+  select.innerHTML = "";
+  entries.forEach(([label, value]) => select.add(new Option(label, value)));
+  if (desiredValue != null && Array.from(select.options).some(option => option.value === desiredValue)) {
+    select.value = desiredValue;
+  } else if (select.options.length) {
+    select.selectedIndex = 0;
+  }
+}
+
+function refreshMainSelects() {
+  const oldFrom = fromSel.value;
+  const oldTo = toSel.value;
+  const nodeEntries = Object.entries(NODES).map(([id, node]) => [node.name, id]);
+  populateSelect(fromSel, nodeEntries, oldFrom);
+  const destinationEntries = nodeEntries.slice();
+  if (pinDestination) destinationEntries.push([`Шпилька · X: ${pinDestination.x}, Z: ${pinDestination.z}`, PIN_DESTINATION_KEY]);
+  populateSelect(toSel, destinationEntries, pinDestination && oldTo === PIN_DESTINATION_KEY ? PIN_DESTINATION_KEY : oldTo);
+  if (!fromSel.value && nodeEntries.length) fromSel.selectedIndex = 0;
+  if (!oldTo && nodeEntries.length && !pinDestination) toSel.selectedIndex = Math.min(2, nodeEntries.length - 1);
+  if (!toSel.value && nodeEntries.length) toSel.selectedIndex = Math.min(2, nodeEntries.length - 1);
+  if (toSel.value && toSel.value !== PIN_DESTINATION_KEY && oldTo !== PIN_DESTINATION_KEY) lastNamedDestination = toSel.value;
+}
+
+function refreshEditorSelects() {
+  const nodeEntries = Object.entries(NODES).map(([id, node]) => [`${node.name} (X: ${node.x}, Z: ${node.z})`, id]);
+  const previousRoadFrom = roadFromSel.value;
+  const previousRoadTo = roadToSel.value;
+  const previousDeleteNode = deleteNodeSel.value;
+  populateSelect(roadFromSel, nodeEntries, previousRoadFrom);
+  populateSelect(roadToSel, nodeEntries, previousRoadTo);
+  populateSelect(deleteNodeSel, nodeEntries, previousDeleteNode);
+  const oldRoad = deleteRoadSel.value;
+  deleteRoadSel.innerHTML = "";
+  ROADS.forEach((road, index) => {
+    const fromName = NODES[road.from]?.name || road.from;
+    const toName = NODES[road.to]?.name || road.to;
+    const direction = road.oneWay ? " →" : " ↔";
+    const roadType = road.type === "A_only" ? "вузька" : road.type === "B_only" ? "вантажна" : "відкрита";
+    deleteRoadSel.add(new Option(`${fromName}${direction} ${toName} · ${roadType}`, String(index)));
+  });
+  if (Array.from(deleteRoadSel.options).some(option => option.value === oldRoad)) deleteRoadSel.value = oldRoad;
+}
+
+function renderCalibrationPoints() {
+  calibrationLayer.clearLayers();
+  calibrationPoints.forEach((point, index) => {
+    L.circleMarker(pixelToLatLng(point.px, point.py), {
+      radius: 6, color: "#fff", weight: 2, fillColor: "#7c4dff", fillOpacity: .95, interactive: false
+    }).bindTooltip(`Прив'язка ${index + 1}: X ${point.x}, Z ${point.z}`, { permanent: false }).addTo(calibrationLayer);
+  });
+  const list = document.getElementById("calibrationPointsList");
+  list.innerHTML = "";
+  if (!calibrationPoints.length) {
+    const li = document.createElement("li");
+    const span = document.createElement("span"); span.textContent = "Поки немає точок прив'язки.";
+    li.appendChild(span); list.appendChild(li);
+  } else {
+    calibrationPoints.forEach((point, index) => {
+      const li = document.createElement("li");
+      const span = document.createElement("span");
+      span.textContent = `#${index + 1}: піксель (${point.px.toFixed(1)}, ${point.py.toFixed(1)}) → X ${point.x}, Z ${point.z}`;
+      const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "✕";
+      remove.setAttribute("aria-label", `Видалити точку прив'язки ${index + 1}`);
+      remove.addEventListener("click", () => { calibrationPoints.splice(index, 1); renderCalibrationPoints(); saveAppData(); });
+      li.append(span, remove); list.appendChild(li);
+    });
+  }
+}
+
+function renderMapData() {
+  GRAPH = buildGraph();
+  roadLayer.clearLayers();
+  nodeLayer.clearLayers();
+  ROADS.forEach(road => {
+    const edge = GRAPH[road.from]?.find(item => item.road === road);
+    if (!edge) return;
+    const latlngs = edge.points.map(point => toLatLng(point[0], point[1]));
+    const line = L.polyline(latlngs, {
+      color: ROAD_STYLE[road.type] || "#9aa0a6", weight: 4, opacity: .82,
+      dashArray: road.type === "all" ? null : "8 6"
+    }).addTo(roadLayer);
+    line.bindTooltip(`${NODES[road.from]?.name || road.from} → ${NODES[road.to]?.name || road.to}`);
+    if (road.oneWay) {
+      const a = edge.points[0], b = edge.points[Math.min(1, edge.points.length - 1)];
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const aPixel = map.latLngToLayerPoint(toLatLng(a[0], a[1]));
+      const bPixel = map.latLngToLayerPoint(toLatLng(b[0], b[1]));
+      const angle = Math.atan2(bPixel.y - aPixel.y, bPixel.x - aPixel.x) * 180 / Math.PI;
+      L.marker(toLatLng(mid[0], mid[1]), {
+        interactive: false,
+        icon: L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+          html: `<div class="arrow-icon" style="transform:rotate(${angle}deg)">➤</div>` })
+      }).addTo(roadLayer);
+    }
+  });
+
+  Object.entries(NODES).forEach(([id, node]) => {
+    const marker = L.circleMarker(nodeLL(id), {
+      radius: 7, color: "#fff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1
+    }).addTo(nodeLayer);
+    marker.bindTooltip(node.name, { permanent: true, direction: "top", offset: [0, -8], className: "node-label" });
+    const popup = document.createElement("div");
+    const title = document.createElement("strong"); title.textContent = node.name;
+    const coords = document.createElement("div"); coords.textContent = `X: ${node.x}, Z: ${node.z}`;
+    const buttons = document.createElement("div"); buttons.className = "popup-btns";
+    const fromButton = document.createElement("button"); fromButton.type = "button"; fromButton.textContent = "Звідси";
+    fromButton.addEventListener("click", () => { fromSel.value = id; map.closePopup(); });
+    const toButton = document.createElement("button"); toButton.type = "button"; toButton.textContent = "Сюди";
+    toButton.addEventListener("click", () => { toSel.value = id; toSel.dispatchEvent(new Event("change")); map.closePopup(); });
+    buttons.append(fromButton, toButton); popup.append(title, coords, buttons);
+    marker.bindPopup(popup);
+  });
+  refreshMainSelects();
+  refreshEditorSelects();
+  renderCalibrationPoints();
+  if (pinDestination && pinMarker) {
+    pinDestination.latlng = toLatLng(pinDestination.x, pinDestination.z);
+    pinMarker.setLatLng(pinDestination.latlng);
+  }
+}
+
+// Відразу показуємо поточні/збережені дані, навіть якщо мережа порожня.
+renderMapData();
+
+/* =====================================================================
+   MAP PIN DESTINATION
+   ===================================================================== */
+toSel.addEventListener("change", () => {
+  if (toSel.value !== PIN_DESTINATION_KEY) lastNamedDestination = toSel.value;
 });
-Object.entries(VEHICLES).forEach(([k, v]) => vehicleSel.add(new Option(v.label, k)));
-const ids = Object.keys(NODES);
-fromSel.value = ids[0];
-toSel.value = ids[2] ?? ids[ids.length - 1];
+
+function setPinDestination(clickedLatLng) {
+  const px = clickedLatLng.lng;
+  const py = -clickedLatLng.lat;
+  if (!pixelIsOnMap(px, py)) {
+    infoBox.className = "error";
+    infoBox.textContent = "Став шпильку на самому зображенні карти.";
+    return;
+  }
+  // Перетворюємо позицію пікселя на відкалібровані координати Minecraft.
+  const world = mapToWorld(clickedLatLng);
+  const x = Math.round(world.x);
+  const z = Math.round(world.z);
+  pinDestination = { x, z, latlng: toLatLng(x, z) };
+  lastPinActionAt = Date.now();
+
+  if (toSel.value !== PIN_DESTINATION_KEY) lastNamedDestination = toSel.value;
+  refreshMainSelects();
+  toSel.value = PIN_DESTINATION_KEY;
+
+  if (pinMarker) map.removeLayer(pinMarker);
+  pinMarker = L.marker(pinDestination.latlng, {
+    icon: L.divIcon({ className: "destination-pin", html: "📍", iconSize: [32, 34], iconAnchor: [16, 32] }),
+    keyboard: false
+  }).addTo(map);
+
+  const popup = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = "Пункт призначення";
+  const coords = document.createElement("div");
+  coords.textContent = `X: ${x}, Z: ${z}`;
+  const buttons = document.createElement("div");
+  buttons.className = "popup-btns";
+  const clearButton = document.createElement("button");
+  clearButton.type = "button";
+  clearButton.textContent = "Прибрати шпильку";
+  clearButton.addEventListener("click", () => {
+    clearPinDestination();
+    map.closePopup();
+  });
+  buttons.appendChild(clearButton);
+  popup.append(title, coords, buttons);
+  pinMarker.bindPopup(popup).openPopup();
+
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  infoBox.className = "ok";
+  infoBox.innerHTML = `<div class="summary">Пункт призначення вибрано</div><div class="steps">Координати Minecraft: X: ${x}, Z: ${z}. Натисни «Розрахувати маршрут».</div>`;
+  headerSummary.textContent = `Шпилька · X: ${x}, Z: ${z}`;
+}
+
+function clearPinDestination() {
+  if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
+  pinDestination = null;
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  refreshMainSelects();
+  if (lastNamedDestination && NODES[lastNamedDestination]) toSel.value = lastNamedDestination;
+  headerSummary.textContent = "";
+  infoBox.className = "";
+  infoBox.textContent = "";
+}
+
+// ПКМ на комп'ютері.
+map.on("contextmenu", event => {
+  // Не створюємо шпильку, якщо користувач зараз калібрує карту або ставить точку дороги.
+  if (selectingCalibrationPoint || editorAddNodeMode) return;
+  if (Date.now() - lastPinActionAt < 800) return;
+  setPinDestination(event.latlng);
+});
+
+// Довге натискання на сенсорному екрані. Рух пальця скасовує встановлення шпильки,
+// щоб звичайне перетягування карти продовжувало працювати як очікується.
+const mapContainer = map.getContainer();
+let touchPress = null;
+let longPressTimer = null;
+mapContainer.addEventListener("touchstart", event => {
+  if (selectingCalibrationPoint || editorAddNodeMode) { clearTimeout(longPressTimer); touchPress = null; return; }
+  if (event.touches.length !== 1 || event.target.closest(".leaflet-control, .leaflet-popup, button, a, input, select")) return;
+  const touch = event.touches[0];
+  const rect = mapContainer.getBoundingClientRect();
+  touchPress = { x: touch.clientX, y: touch.clientY, containerX: touch.clientX - rect.left, containerY: touch.clientY - rect.top, moved: false };
+  clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => {
+    if (!touchPress || touchPress.moved || Date.now() - lastPinActionAt < 800) return;
+    setPinDestination(map.containerPointToLatLng(L.point(touchPress.containerX, touchPress.containerY)));
+  }, 650);
+}, { passive: true });
+mapContainer.addEventListener("touchmove", event => {
+  if (!touchPress || !event.touches.length) return;
+  const touch = event.touches[0];
+  if (Math.hypot(touch.clientX - touchPress.x, touch.clientY - touchPress.y) > 10) {
+    touchPress.moved = true;
+    clearTimeout(longPressTimer);
+  }
+}, { passive: true });
+function cancelLongPress() {
+  clearTimeout(longPressTimer);
+  touchPress = null;
+}
+mapContainer.addEventListener("touchend", cancelLongPress, { passive: true });
+mapContainer.addEventListener("touchcancel", cancelLongPress, { passive: true });
+
+/* =====================================================================
+   CALIBRATION + ROAD EDITOR
+   ===================================================================== */
+const calibrationPanel = document.getElementById("calibrationPanel");
+const editorPanel = document.getElementById("editorPanel");
+const toggleCalibrationBtn = document.getElementById("toggleCalibrationBtn");
+const toggleEditorBtn = document.getElementById("toggleEditorBtn");
+const selectCalibrationPixelBtn = document.getElementById("selectCalibrationPixelBtn");
+const calibrationXInput = document.getElementById("calibrationXInput");
+const calibrationZInput = document.getElementById("calibrationZInput");
+const calibrationStatus = document.getElementById("calibrationStatus");
+const editorStatus = document.getElementById("editorStatus");
+const newNodeNameInput = document.getElementById("newNodeNameInput");
+let selectingCalibrationPoint = false;
+let pendingCalibrationPixel = null;
+let editorAddNodeMode = false;
+if (calibrationPoints.length) calibrationStatus.textContent = `Завантажено ${calibrationPoints.length} точок прив'язки. Можна додати ще або застосувати калібрування.`;
+
+toggleCalibrationBtn.addEventListener("click", () => {
+  calibrationPanel.hidden = !calibrationPanel.hidden;
+  toggleCalibrationBtn.classList.toggle("mode-active", !calibrationPanel.hidden);
+  if (!calibrationPanel.hidden) {
+    editorPanel.hidden = true;
+    toggleEditorBtn.classList.remove("mode-active");
+    editorAddNodeMode = false;
+    document.getElementById("addNodeModeBtn").classList.remove("mode-active");
+    selectingCalibrationPoint = false;
+    selectCalibrationPixelBtn.classList.remove("mode-active");
+    map.getContainer().style.cursor = "";
+  } else {
+    selectingCalibrationPoint = false;
+    selectCalibrationPixelBtn.classList.remove("mode-active");
+    map.getContainer().style.cursor = "";
+  }
+});
+toggleEditorBtn.addEventListener("click", () => {
+  editorPanel.hidden = !editorPanel.hidden;
+  toggleEditorBtn.classList.toggle("mode-active", !editorPanel.hidden);
+  if (!editorPanel.hidden) {
+    calibrationPanel.hidden = true;
+    toggleCalibrationBtn.classList.remove("mode-active");
+    selectingCalibrationPoint = false;
+    selectCalibrationPixelBtn.classList.remove("mode-active");
+    map.getContainer().style.cursor = "";
+  } else {
+    editorAddNodeMode = false;
+    document.getElementById("addNodeModeBtn").classList.remove("mode-active");
+    map.getContainer().style.cursor = "";
+  }
+});
+
+selectCalibrationPixelBtn.addEventListener("click", () => {
+  selectingCalibrationPoint = true;
+  editorAddNodeMode = false;
+  document.getElementById("addNodeModeBtn").classList.remove("mode-active");
+  map.getContainer().style.cursor = "crosshair";
+  selectCalibrationPixelBtn.classList.add("mode-active");
+  calibrationStatus.textContent = "Тепер клацни на відомий орієнтир на зображенні карти.";
+  editorStatus.textContent = "";
+});
+
+function handleMapSelection(event) {
+  const px = event.latlng.lng;
+  const py = -event.latlng.lat;
+  if (selectingCalibrationPoint) {
+    if (!pixelIsOnMap(px, py)) {
+      calibrationStatus.textContent = "Обери місце всередині зображення карти.";
+      return;
+    }
+    pendingCalibrationPixel = { px, py };
+    selectingCalibrationPoint = false;
+    map.getContainer().style.cursor = "";
+    selectCalibrationPixelBtn.classList.remove("mode-active");
+    calibrationStatus.textContent = `Місце вибрано: піксель X ${px.toFixed(1)}, Y ${py.toFixed(1)}. Введи його координати Minecraft нижче.`;
+    return;
+  }
+  if (editorAddNodeMode) {
+    if (!pixelIsOnMap(px, py)) {
+      editorStatus.textContent = "Позначай точки всередині зображення карти.";
+      return;
+    }
+    const world = mapToWorld(event.latlng);
+    const x = Math.round(world.x);
+    const z = Math.round(world.z);
+    const name = newNodeNameInput.value.trim() || `Точка ${Object.keys(NODES).length + 1}`;
+    let index = 1;
+    while (NODES[`point_${index}`]) index++;
+    const id = `point_${index}`;
+    NODES[id] = { name, x, z };
+    clearCurrentRoute();
+    editorAddNodeMode = false;
+    map.getContainer().style.cursor = "";
+    document.getElementById("addNodeModeBtn").classList.remove("mode-active");
+    newNodeNameInput.value = "";
+    renderMapData();
+    saveAppData();
+    editorStatus.textContent = `Додано «${name}»: X ${x}, Z ${z}. Тепер з'єднай точку з сусідніми дорогами.`;
+  }
+}
+map.on("click", handleMapSelection);
+
+document.getElementById("addNodeModeBtn").addEventListener("click", () => {
+  editorAddNodeMode = true;
+  selectingCalibrationPoint = false;
+  selectCalibrationPixelBtn.classList.remove("mode-active");
+  map.getContainer().style.cursor = "crosshair";
+  document.getElementById("addNodeModeBtn").classList.add("mode-active");
+  selectCalibrationPixelBtn.classList.remove("mode-active");
+  editorStatus.textContent = "Клацни на потрібне місце карти. Перед цим можна ввести назву точки.";
+});
+
+function linearCalibrationFit(points, pixelKey, worldKey) {
+  const meanPixel = points.reduce((sum, point) => sum + point[pixelKey], 0) / points.length;
+  const meanWorld = points.reduce((sum, point) => sum + point[worldKey], 0) / points.length;
+  let variance = 0, covariance = 0;
+  points.forEach(point => {
+    const dp = point[pixelKey] - meanPixel;
+    variance += dp * dp;
+    covariance += dp * (point[worldKey] - meanWorld);
+  });
+  if (variance < 1e-6) return null;
+  const scale = covariance / variance;
+  return { scale, offset: meanWorld - scale * meanPixel };
+}
+
+document.getElementById("addCalibrationPointBtn").addEventListener("click", () => {
+  if (!pendingCalibrationPixel) {
+    calibrationStatus.textContent = "Спочатку натисни «Вибрати місце на карті» та вибери орієнтир.";
+    return;
+  }
+  const x = Number(calibrationXInput.value);
+  const z = Number(calibrationZInput.value);
+  if (calibrationXInput.value.trim() === "" || calibrationZInput.value.trim() === "" || !Number.isFinite(x) || !Number.isFinite(z)) {
+    calibrationStatus.textContent = "Введи числові координати X і Z з F3.";
+    return;
+  }
+  calibrationPoints.push({ ...pendingCalibrationPixel, x, z });
+  pendingCalibrationPixel = null;
+  calibrationXInput.value = "";
+  calibrationZInput.value = "";
+  renderCalibrationPoints();
+  saveAppData();
+  calibrationStatus.textContent = `Точку прив'язки додано. Зараз точок: ${calibrationPoints.length}. Додай ще одну або застосуй калібрування.`;
+});
+
+document.getElementById("applyCalibrationBtn").addEventListener("click", () => {
+  if (calibrationPoints.length < 2) {
+    calibrationStatus.textContent = "Потрібно щонайменше 2 точки. Для кращої перевірки можна додати 3–4.";
+    return;
+  }
+  const fitX = linearCalibrationFit(calibrationPoints, "px", "x");
+  const fitZ = linearCalibrationFit(calibrationPoints, "py", "z");
+  if (!fitX || !fitZ || !Number.isFinite(fitX.scale) || !Number.isFinite(fitZ.scale) || fitX.scale <= 0 || fitZ.scale <= 0) {
+    calibrationStatus.textContent = "Не вдалося обчислити калібрування. Вибери різні місця по горизонталі й вертикалі та перевір X/Z з F3.";
+    return;
+  }
+  calibration = { scaleX: fitX.scale, offsetX: fitX.offset, scaleZ: fitZ.scale, offsetZ: fitZ.offset };
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  renderMapData();
+  saveAppData();
+  calibrationStatus.textContent = `Калібрування застосовано: ${fitX.scale.toFixed(4)} блока/піксель по X, ${fitZ.scale.toFixed(4)} блока/піксель по Z. Точки та дороги перепозиціоновано.`;
+  infoBox.className = "ok";
+  infoBox.innerHTML = `<div class="summary">Калібрування карти застосовано</div><div class="steps">Масштаб X: ${fitX.scale.toFixed(4)} блока/піксель. Масштаб Z: ${fitZ.scale.toFixed(4)} блока/піксель.</div>`;
+});
+
+document.getElementById("clearCalibrationPointsBtn").addEventListener("click", () => {
+  calibrationPoints = [];
+  pendingCalibrationPixel = null;
+  renderCalibrationPoints();
+  saveAppData();
+  calibrationStatus.textContent = "Точки прив'язки очищено. Поточне калібрування не змінено, доки не натиснеш скидання або не додаси нові точки.";
+});
+document.getElementById("resetCalibrationBtn").addEventListener("click", () => {
+  if (!confirm("Скинути калібрування до приблизного масштабу 1 піксель = 1 блок?")) return;
+  calibration = { ...DEFAULT_CALIBRATION };
+  calibrationPoints = [];
+  pendingCalibrationPixel = null;
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  renderMapData();
+  saveAppData();
+  calibrationStatus.textContent = "Калібрування скинуто. Координати знову приблизні, доки ти не прив'яжеш карту до F3.";
+});
+
+function clearCurrentRoute() {
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  headerSummary.textContent = "";
+  infoBox.className = "";
+  infoBox.textContent = "";
+}
+
+document.getElementById("addRoadBtn").addEventListener("click", () => {
+  const from = roadFromSel.value;
+  const to = roadToSel.value;
+  const type = document.getElementById("roadTypeSel").value;
+  if (!from || !to || !NODES[from] || !NODES[to]) {
+    editorStatus.textContent = "Спочатку додай щонайменше дві точки.";
+    return;
+  }
+  if (from === to) { editorStatus.textContent = "Початок і кінець дороги мають бути різними."; return; }
+  const oneWay = document.getElementById("roadOneWayInput").checked;
+  const alreadyExists = ROADS.some(road => road.from === from && road.to === to && road.type === type && Boolean(road.oneWay) === oneWay);
+  if (alreadyExists) { editorStatus.textContent = "Така дорога вже є."; return; }
+  ROADS.push({ from, to, type, ...(oneWay ? { oneWay: true } : {}) });
+  clearCurrentRoute();
+  renderMapData();
+  saveAppData();
+  editorStatus.textContent = `Дорогу додано: ${NODES[from].name} ${oneWay ? "→" : "↔"} ${NODES[to].name}. Для поворотів додавай проміжні точки.`;
+});
+
+document.getElementById("deleteRoadBtn").addEventListener("click", () => {
+  const index = Number(deleteRoadSel.value);
+  if (!Number.isInteger(index) || index < 0 || index >= ROADS.length) { editorStatus.textContent = "Немає дороги для видалення."; return; }
+  const removed = ROADS.splice(index, 1)[0];
+  clearCurrentRoute();
+  renderMapData();
+  saveAppData();
+  editorStatus.textContent = `Дорогу ${NODES[removed.from]?.name || removed.from} — ${NODES[removed.to]?.name || removed.to} видалено.`;
+});
+
+document.getElementById("deleteNodeBtn").addEventListener("click", () => {
+  const id = deleteNodeSel.value;
+  if (!id || !NODES[id]) { editorStatus.textContent = "Немає точки для видалення."; return; }
+  const name = NODES[id].name;
+  if (!confirm(`Видалити точку «${name}» і всі дороги, що до неї під'єднані?`)) return;
+  delete NODES[id];
+  ROADS = ROADS.filter(road => road.from !== id && road.to !== id);
+  if (fromSel.value === id) fromSel.value = "";
+  if (toSel.value === id) toSel.value = "";
+  clearCurrentRoute();
+  renderMapData();
+  saveAppData();
+  editorStatus.textContent = `Точку «${name}» та її дороги видалено.`;
+});
+
+document.getElementById("clearNetworkBtn").addEventListener("click", () => {
+  if (!confirm("Очистити всі точки й дороги, включно з демонстраційними? Калібрування карти залишиться.")) return;
+  NODES = {};
+  ROADS = [];
+  clearCurrentRoute();
+  if (pinDestination) clearPinDestination();
+  renderMapData();
+  saveAppData();
+  editorStatus.textContent = "Мережу очищено. Тепер позначай реальні точки на відкаліброваній карті.";
+});
+
+document.getElementById("exportDataBtn").addEventListener("click", () => {
+  const data = { version: 2, image: { width: MAP_IMAGE_WIDTH, height: MAP_IMAGE_HEIGHT }, nodes: NODES, roads: ROADS, calibration, calibrationPoints };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = "popsikosland-gps-data.json";
+  document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+  editorStatus.textContent = "JSON-файл експортується. Зберігай його як резервну копію своїх доріг і координат.";
+});
+
+document.getElementById("importDataInput").addEventListener("change", async event => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !data.nodes || typeof data.nodes !== "object" || Array.isArray(data.nodes) || !Array.isArray(data.roads)) {
+      throw new Error("Файл має містити об'єкти nodes і roads.");
+    }
+    const nextNodes = {};
+    for (const [id, node] of Object.entries(data.nodes)) {
+      if (!node || typeof node.name !== "string" || !Number.isFinite(Number(node.x)) || !Number.isFinite(Number(node.z))) throw new Error(`Некоректна точка: ${id}`);
+      nextNodes[id] = { name: node.name, x: Number(node.x), z: Number(node.z) };
+    }
+    const nextRoads = data.roads.map((road, index) => {
+      if (!road || !nextNodes[road.from] || !nextNodes[road.to] || !["all", "A_only", "B_only"].includes(road.type)) throw new Error(`Некоректна дорога №${index + 1}`);
+      const next = { from: road.from, to: road.to, type: road.type };
+      if (road.oneWay) next.oneWay = true;
+      if (Array.isArray(road.via)) next.via = road.via.map(point => {
+        if (!Array.isArray(point) || point.length < 2 || !Number.isFinite(Number(point[0])) || !Number.isFinite(Number(point[1]))) throw new Error(`Некоректна геометрія дороги №${index + 1}`);
+        return [Number(point[0]), Number(point[1])];
+      });
+      if (Number.isFinite(Number(road.weight))) next.weight = Number(road.weight);
+      return next;
+    });
+    let nextCalibration = { ...DEFAULT_CALIBRATION };
+    if (data.calibration) {
+      const c = data.calibration;
+      if (![c.scaleX, c.offsetX, c.scaleZ, c.offsetZ].every(Number.isFinite) || c.scaleX <= 0 || c.scaleZ <= 0) throw new Error("Некоректні параметри калібрування.");
+      nextCalibration = { scaleX: c.scaleX, offsetX: c.offsetX, scaleZ: c.scaleZ, offsetZ: c.offsetZ };
+    }
+    if (!confirm("Замінити поточні точки, дороги й калібрування даними з цього JSON?")) { event.target.value = ""; return; }
+    if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
+    pinDestination = null;
+    NODES = nextNodes; ROADS = nextRoads; calibration = nextCalibration;
+    calibrationPoints = Array.isArray(data.calibrationPoints) ? data.calibrationPoints.filter(p => p && [p.px, p.py, p.x, p.z].every(Number.isFinite)) : [];
+    clearCurrentRoute();
+    renderMapData();
+    saveAppData();
+    editorStatus.textContent = `Імпортовано ${Object.keys(NODES).length} точок і ${ROADS.length} доріг.`;
+    calibrationStatus.textContent = `З JSON завантажено ${calibrationPoints.length} точок прив'язки.`;
+    if (Object.keys(NODES).length) {
+      fromSel.value = Object.keys(NODES)[0];
+      toSel.value = Object.keys(NODES)[Math.min(2, Object.keys(NODES).length - 1)];
+      lastNamedDestination = toSel.value;
+    }
+  } catch (error) {
+    editorStatus.textContent = `Не вдалося імпортувати JSON: ${error.message}`;
+  } finally {
+    event.target.value = "";
+  }
+});
 
 /* =====================================================================
    ROUTE CALCULATION + DISPLAY
    ===================================================================== */
 const infoBox = document.getElementById("info");
 const headerSummary = document.getElementById("headerSummary");
-let routeLine = null;
 
 function showError(msg) {
   infoBox.className = "error";
@@ -312,33 +1036,53 @@ function calculateRoute() {
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   const from = fromSel.value, to = toSel.value, veh = vehicleSel.value;
   const vName = VEHICLES[veh].short;
+  const isPinTarget = to === PIN_DESTINATION_KEY && pinDestination;
 
-  if (from === to) { showError("Початок і кінець маршруту збігаються."); return; }
+  if (!NODES[from] || (!isPinTarget && !NODES[to])) {
+    showError("Спочатку додай точки й дороги в редакторі або вибери наявні пункти маршруту.");
+    return;
+  }
+  if (!isPinTarget && from === to) { showError("Початок і кінець маршруту збігаються."); return; }
 
-  const route = dijkstra(from, to, veh);
+  const route = isPinTarget
+    ? routeToCoordinate(from, pinDestination, veh)
+    : dijkstra(from, to, veh);
+
   if (!route) {
-    const anyRoute = dijkstra(from, to, null);
-    showError(anyRoute
-      ? `Маршрут заблоковано для варіанта ${veh} (${vName}). Шлях існує, але лише через заборонені або односторонні дороги.`
-      : "Маршруту між цими точками не існує (перевір односторонні дороги).");
+    if (isPinTarget) {
+      showError(`Не вдалося побудувати маршрут для варіанта ${veh} (${vName}) до цієї точки. Перевір дорожню мережу та односторонній рух.`);
+    } else {
+      const anyRoute = dijkstra(from, to, null);
+      showError(anyRoute
+        ? `Маршрут заблоковано для варіанта ${veh} (${vName}). Шлях існує, але лише через заборонені або односторонні дороги.`
+        : "Маршруту між цими точками не існує (перевір односторонні дороги).");
+    }
     if (isMobile()) setSheet(false);
     return;
   }
 
-  // Build geometry from the edges' bend points
-  const latlngs = [];
-  route.edges.forEach((e, i) => {
-    e.points.forEach((p, j) => { if (i === 0 || j > 0) latlngs.push(toLatLng(p[0], p[1])); });
-  });
+  const coordinatePath = isPinTarget
+    ? route.coordinates
+    : routeGeometryPoints(route);
+  const latlngs = coordinatePath.map(point => toLatLng(point[0], point[1]));
   routeLine = L.polyline(latlngs, { color: "#1a73e8", weight: 7, opacity: .85, lineJoin: "round", lineCap: "round" }).addTo(map);
 
-  const names = route.nodes.map(id => NODES[id].name).join(" ➔ ");
+  const names = route.nodes.map(id => NODES[id].name);
+  if (isPinTarget) names.push(`Шпилька (X: ${pinDestination.x}, Z: ${pinDestination.z})`);
   const km = (route.distance / 1000).toFixed(2);
   infoBox.className = "ok";
-  infoBox.innerHTML = `<div class="summary">Маршрут знайдено · ${Math.round(route.distance)} блоків (${km} км)</div><div class="steps">${names}</div>`;
-  headerSummary.textContent = `${NODES[from].name} ➔ ${NODES[to].name} · ${Math.round(route.distance)} блоків`;
+  infoBox.innerHTML = "";
+  const routeSummary = document.createElement("div");
+  routeSummary.className = "summary";
+  routeSummary.textContent = `Маршрут знайдено · ${Math.round(route.distance)} блоків (${km} км)`;
+  const routeSteps = document.createElement("div");
+  routeSteps.className = "steps";
+  routeSteps.textContent = names.join(" ➔ ");
+  infoBox.append(routeSummary, routeSteps);
+  headerSummary.textContent = isPinTarget
+    ? `${NODES[from].name} ➔ Шпилька · ${Math.round(route.distance)} блоків`
+    : `${NODES[from].name} ➔ ${NODES[to].name} · ${Math.round(route.distance)} блоків`;
 
-  // On mobile: collapse the sheet first, then fit with padding so the route clears it
   if (isMobile()) setSheet(false);
   fitRoute();
 }
@@ -392,7 +1136,11 @@ function onLayoutChange() {
 mobileQuery.addEventListener("change", onLayoutChange);
 window.addEventListener("resize", () => map.invalidateSize());
 
-// Start: expanded on both layouts
+// Start: expanded on both layouts. Select sensible defaults when stored network is empty/non-empty.
+if (Object.keys(NODES).length) {
+  if (!fromSel.value) fromSel.value = Object.keys(NODES)[0];
+  if (!toSel.value) toSel.value = Object.keys(NODES)[Math.min(2, Object.keys(NODES).length - 1)];
+}
 setSheet(true);
 </script>
 </body>
