@@ -1114,7 +1114,7 @@ function calculateRoute() {
     ? route.coordinates
     : routeGeometryPoints(route);
   const latlngs = coordinatePath.map(point => toLatLng(point[0], point[1]));
-  routeLine = L.polyline(latlngs, { color: "#1a73e8", weight: 7, opacity: .85, lineJoin: "round", lineCap: "round" }).addTo(map);
+  routeLine = L.polyline(latlngs, { color: "#FF0000", weight: 7, opacity: .85, lineJoin: "round", lineCap: "round" }).addTo(map);
 
   const names = route.nodes.map(id => NODES[id].name);
   if (isPinTarget) names.push(`Шпилька (X: ${pinDestination.x}, Z: ${pinDestination.z})`);
