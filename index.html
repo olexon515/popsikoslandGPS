@@ -61,7 +61,7 @@
     width: 100%; height: 46px; padding: 0 38px 0 14px; font-size: 15px;
     border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text);
   }
-  .field input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+  .field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,.18); }
   .clear-x {
     position: absolute; right: 6px; top: 6px; width: 34px; height: 34px; border: 0; border-radius: 50%;
     background: transparent; color: var(--text-2); font-size: 15px; cursor: pointer;
@@ -172,20 +172,86 @@
     #sidebar {
       position: fixed; left: 0; right: 0; bottom: 0; width: 100%; flex: none;
       height: var(--sheet-expanded); border-radius: 20px 20px 0 0;
-      box-shadow: 0 -4px 18px rgba(0,0,0,.3); transition: height .3s ease; overflow: hidden;
+      box-shadow: 0 -4px 18px rgba(0,0,0,.3); transition: height .5s cubic-bezier(.32,.72,0,1); overflow: hidden;
       padding-bottom: env(safe-area-inset-bottom);
     }
     #sidebar.collapsed { height: calc(var(--sheet-collapsed) + env(safe-area-inset-bottom)); }
     .sheet-handle { display: block; width: 44px; height: 5px; border-radius: 3px; background: #c4c7ca; margin: 8px auto 0; cursor: pointer; }
     .sheet-header { padding: 8px 16px 10px; border-bottom: none; cursor: pointer; }
     .sheet-title small { max-width: calc(100vw - 150px); }
-    .sheet-toggle { display: block; }
-    .sheet-body { padding: 4px 16px 24px; }
-    #sidebar.collapsed .sheet-body { visibility: hidden; }
+    .sheet-toggle { display: block; transition: transform .5s cubic-bezier(.32,.72,0,1); }
+    #sidebar.collapsed .sheet-toggle { transform: rotate(180deg); }
+    .sheet-body { padding: 4px 16px 24px; transition: opacity .3s ease .12s; }
+    #sidebar.collapsed .sheet-body { opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
     .field input[type="text"], .field input[type="password"],
     .tool-panel input[type="text"], .tool-panel input[type="number"], .tool-panel select { font-size: 16px; }
     .opt { padding: 14px; }
   }
+
+  /* ---------- Анімації ---------- */
+  :root { --ease-out: cubic-bezier(.2,.8,.2,1); --ease-spring: cubic-bezier(.34,1.4,.5,1); }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes popIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(18px) scale(.94); } to { opacity: 1; transform: none; } }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  @keyframes chipIn { from { opacity: 0; transform: scale(.8) translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes shake { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(4px); } 30%,50%,70% { transform: translateX(-7px); } 40%,60% { transform: translateX(7px); } }
+  @keyframes pinDrop { 0% { opacity: 0; transform: translateY(-46px) scale(.7); } 55% { opacity: 1; transform: translateY(0) scale(1.08,.92); } 75% { transform: translateY(-7px) scale(.98,1.03); } 100% { transform: none; } }
+  @keyframes ring { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(2.4); } }
+  @keyframes dotPop { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes pulse { 0% { opacity: .45; transform: scale(.6); } 100% { opacity: 0; transform: scale(2.2); } }
+
+  button, .opt, .clear-x { transition: background-color .2s, border-color .2s, color .2s, box-shadow .25s, transform .2s var(--ease-out); }
+  button:active:not(:disabled) { transform: scale(.97); }
+  .secondary-btn:hover, .tool-toggle:hover { background: #f6f8fc; border-color: #c6d4f0; }
+  .swap { transition: transform .55s var(--ease-spring), background-color .2s; }
+  .combo-list:not([hidden]) { animation: popIn .22s var(--ease-out); transform-origin: 50% 0; }
+  .clear-x:not([hidden]) { animation: fadeIn .2s; }
+
+  .seg { position: relative; }
+  .seg::before {
+    content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 12px) / 2);
+    border-radius: 10px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.22);
+    transform: translateX(calc(var(--i, 0) * (100% + 4px))); transition: transform .45s var(--ease-spring);
+  }
+  .seg button { position: relative; z-index: 1; }
+  .seg button[aria-checked="true"] { background: transparent; box-shadow: none; }
+
+  #calcBtn { background: linear-gradient(135deg, #2b83f0, #1557b0); transition: transform .2s var(--ease-out), box-shadow .25s; }
+  #calcBtn:hover { background: linear-gradient(135deg, #3b8ff5, #1a62c4); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,.4); }
+  #calcBtn:active { transform: scale(.98); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+
+  #info.ok, #info.error { animation: fadeUp .4s var(--ease-out); }
+  #info > * { animation: fadeUp .5s var(--ease-out) both; }
+  #info > :nth-child(2) { animation-delay: .07s; }
+  #info > :nth-child(3) { animation-delay: .14s; }
+  #info .chip { animation: chipIn .45s var(--ease-spring) both; animation-delay: calc(var(--i, 0) * 60ms + .25s); }
+  #info .arrow { animation: fadeIn .4s both; animation-delay: calc(var(--i, 0) * 60ms + .25s); }
+
+  .tool-panel:not([hidden]), #devTools:not([hidden]) { animation: panelIn .38s var(--ease-out); }
+  .modal:not([hidden]) { animation: fadeIn .25s ease-out; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  .modal:not([hidden]) .modal-card { animation: cardIn .45s var(--ease-spring); }
+  .modal:not([hidden]) .modal-card.shake { animation: shake .45s cubic-bezier(.36,.07,.19,.97); }
+
+  .pin-glyph { display: inline-block; transform-origin: 50% 100%; animation: pinDrop .7s var(--ease-out) both; }
+  .pin-ring { position: absolute; left: 50%; bottom: -2px; width: 28px; height: 10px; margin-left: -14px; border-radius: 50%; border: 2px solid rgba(217,48,37,.7); pointer-events: none; animation: ring 1.5s ease-out .45s 2 both; }
+  .route-dot { position: relative; width: 22px; height: 22px; }
+  .route-dot.start { color: #1a73e8; }
+  .route-dot.end { color: #d93025; }
+  .route-dot i { position: absolute; inset: 4px; border-radius: 50%; background: currentColor; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.5); animation: dotPop .5s var(--ease-spring) both; }
+  .route-dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: currentColor; animation: pulse 2.2s ease-out infinite; }
+  .arrow-icon { animation: fadeIn .6s both; }
+  .leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.28); transform-origin: 50% 100%; }
+  .leaflet-fade-anim .leaflet-popup .leaflet-popup-content-wrapper { animation: popIn .3s var(--ease-spring); }
+
+  html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+  .motion-row { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .motion-row small { display: block; color: var(--text-2); font-size: 12px; line-height: 1.45; }
+  .motion-row .ver { margin-top: 6px; color: #9aa0a6; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -235,6 +301,12 @@
         <div><i style="border-color:#34a853;border-top-style:dashed"></i>Лише вантажний транспорт</div>
         <div>➤ Односторонній рух (стрілка показує напрямок)</div>
       </details>
+
+      <div class="motion-row">
+        <label class="tool-checkbox" style="margin:0"><input type="checkbox" id="motionInput"> ✨ Анімації</label>
+        <small id="motionHint"></small>
+        <small class="ver">Версія: 2026-10-16 · анімації v2</small>
+      </div>
 
       <!-- ===== Зона розробника: видима лише після введення коду ===== -->
       <div class="dev-zone">
@@ -603,6 +675,7 @@ const isMobile = () => mobileQuery.matches;
 const map = L.map("map", {
   crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomControl: false,
   zoomSnap: 0.25, attributionControl: false, preferCanvas: true,
+  wheelPxPerZoomLevel: 110, wheelDebounceTime: 30, zoomDelta: 0.5,
   maxBoundsViscosity: 0.7
 });
 const imageBounds = L.latLngBounds(L.latLng(-MAP_IMAGE_HEIGHT, 0), L.latLng(0, MAP_IMAGE_WIDTH));
@@ -635,8 +708,20 @@ const roadLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const viewLayer = L.layerGroup().addTo(map);       // вузли й стрілки лише в межах екрана
 const calibrationLayer = L.layerGroup().addTo(map);
-let routeLine = null;
+let routeLine = null, routeBounds = null, routeAnimId = 0;
 let routeShown = false;
+const MOTION_KEY = "popsikosland-gps-motion";
+const systemReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let reduceMotion = false;
+function applyMotion() {
+  let pref = null;
+  try { pref = localStorage.getItem(MOTION_KEY); } catch (e) {}
+  reduceMotion = pref === "off" ? true : pref === "on" ? false : systemReduceMotion;
+  document.documentElement.classList.toggle("reduce-motion", reduceMotion);
+}
+applyMotion();
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const easeInOutCubic = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 const $ = id => document.getElementById(id);
 const infoBox = $("info");
@@ -854,9 +939,11 @@ document.querySelectorAll(".clear-x").forEach(btn => btn.addEventListener("click
   else { toId = null; toSearch.value = ""; toSearch.focus(); }
   updateClearButtons();
 }));
+let swapRot = 0;
 $("swapBtn").addEventListener("click", () => {
   const a = fromId, b = toId;
   if (b === PIN_KEY) { showError("Шпильку не можна використати як точку старту."); return; }
+  swapRot += 180; $("swapBtn").style.transform = `rotate(${swapRot}deg)`;
   fromId = b; toId = a;
   fromSearch.value = b ? labelFor(b) : ""; toSearch.value = a ? labelFor(a) : "";
   if (a && a !== PIN_KEY) lastNamedDestination = a;
@@ -868,6 +955,7 @@ $("swapBtn").addEventListener("click", () => {
 const vehicleSeg = $("vehicleSeg");
 function renderVehicleSeg() {
   vehicleSeg.innerHTML = "";
+  vehicleSeg.style.setProperty("--i", Object.keys(VEHICLES).indexOf(vehicle));
   Object.entries(VEHICLES).forEach(([key, v]) => {
     const b = document.createElement("button");
     b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(key === vehicle));
@@ -905,7 +993,9 @@ function renderMapData() {
    PIN DESTINATION
    ===================================================================== */
 function showError(msg) {
-  infoBox.className = "error"; infoBox.textContent = msg; headerSummary.textContent = DEFAULT_SUMMARY;
+  infoBox.className = "error"; infoBox.innerHTML = "";
+  const em = document.createElement("div"); em.textContent = msg; infoBox.appendChild(em);
+  headerSummary.textContent = DEFAULT_SUMMARY;
 }
 function showNote(title, text) {
   infoBox.className = "ok"; infoBox.innerHTML = "";
@@ -914,7 +1004,7 @@ function showNote(title, text) {
   infoBox.append(big, sub);
 }
 function clearRouteLine() {
-  routeLayer.clearLayers(); routeLine = null; routeShown = false;
+  routeAnimId++; routeLayer.clearLayers(); routeLine = null; routeBounds = null; routeShown = false;
   $("clearRouteBtn").hidden = true;
 }
 function clearRoute() {
@@ -937,7 +1027,7 @@ function setPinDestination(clickedLatLng) {
 
   if (pinMarker) map.removeLayer(pinMarker);
   pinMarker = L.marker(pinDestination.latlng, {
-    icon: L.divIcon({ className: "destination-pin", html: "📍", iconSize: [32, 34], iconAnchor: [16, 32] }), keyboard: false
+    icon: L.divIcon({ className: "destination-pin", html: '<span class="pin-glyph">📍</span><span class="pin-ring"></span>', iconSize: [32, 34], iconAnchor: [16, 32] }), keyboard: false
   }).addTo(map);
 
   const popup = document.createElement("div");
@@ -1040,9 +1130,8 @@ function calculateRoute() {
 
   const coordinatePath = isPin ? route.coordinates : routeGeometryPoints(route);
   const latlngs = coordinatePath.map(p => toLatLng(p[0], p[1]));
-  routeLine = L.polyline(latlngs, { color: "#FF0000", weight: 7, opacity: .85, lineJoin: "round", lineCap: "round", interactive: false }).addTo(routeLayer);
-  L.circleMarker(latlngs[0], { radius: 8, color: "#fff", weight: 3, fillColor: "#1a73e8", fillOpacity: 1, interactive: false }).addTo(routeLayer);
-  L.circleMarker(latlngs[latlngs.length - 1], { radius: 8, color: "#fff", weight: 3, fillColor: "#d93025", fillOpacity: 1, interactive: false }).addTo(routeLayer);
+  routeBounds = L.latLngBounds(latlngs);
+  animateRoute(latlngs);
   routeShown = true;
   $("clearRouteBtn").hidden = false;
 
@@ -1052,12 +1141,12 @@ function calculateRoute() {
   if (isPin) steps.push(`Шпилька (X: ${pinDestination.x}, Z: ${pinDestination.z})`);
 
   infoBox.className = "ok"; infoBox.innerHTML = "";
-  const big = document.createElement("div"); big.className = "big"; big.textContent = `${blocks.toLocaleString("uk")} блоків`;
+  const big = document.createElement("div"); big.className = "big"; countUp(big, blocks, " блоків");
   const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = `${km} км · ${VEHICLES[veh].chip}`;
   const chips = document.createElement("div"); chips.className = "chips";
   steps.forEach((name, i) => {
-    if (i) { const a = document.createElement("span"); a.className = "arrow"; a.textContent = "➔"; chips.appendChild(a); }
-    const c = document.createElement("span"); c.className = "chip"; c.textContent = name; chips.appendChild(c);
+    if (i) { const a = document.createElement("span"); a.className = "arrow"; a.style.setProperty("--i", i); a.textContent = "➔"; chips.appendChild(a); }
+    const c = document.createElement("span"); c.className = "chip"; c.style.setProperty("--i", i); c.textContent = name; chips.appendChild(c);
   });
   infoBox.append(big, sub, chips);
   headerSummary.textContent = `${labelFor(fromId)} ➔ ${isPin ? "Шпилька" : labelFor(toId)} · ${blocks} блоків`;
@@ -1066,12 +1155,65 @@ function calculateRoute() {
   fitRoute();
 }
 
-function fitRoute() {
-  if (!routeLine) return;
+function countUp(el, target, suffix) {
+  const fmt = v => `${Math.round(v).toLocaleString("uk")}${suffix}`;
+  if (reduceMotion) { el.textContent = fmt(target); return; }
+  const t0 = performance.now(), dur = 900;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur);
+    el.textContent = fmt(target * easeOutCubic(p));
+    if (p < 1 && el.isConnected) requestAnimationFrame(step);
+  };
+  el.textContent = fmt(0);
+  requestAnimationFrame(step);
+}
+
+const routeDot = (ll, kind) => L.marker(ll, {
+  interactive: false, keyboard: false,
+  icon: L.divIcon({ className: "", html: `<div class="route-dot ${kind}"><i></i></div>`, iconSize: [22, 22], iconAnchor: [11, 11] })
+});
+
+// Плавне «малювання» маршруту від старту до фінішу
+function animateRoute(latlngs) {
+  const token = ++routeAnimId;
+  const casing = L.polyline([], { color: "#fff", weight: 12, opacity: .92, lineJoin: "round", lineCap: "round", interactive: false }).addTo(routeLayer);
+  routeLine = L.polyline([], { color: "#FF0000", weight: 7, opacity: .95, lineJoin: "round", lineCap: "round", interactive: false }).addTo(routeLayer);
+  routeDot(latlngs[0], "start").addTo(routeLayer);
+  const endDot = routeDot(latlngs[latlngs.length - 1], "end");
+  const line = routeLine;
+  const finish = () => { casing.setLatLngs(latlngs); line.setLatLngs(latlngs); endDot.addTo(routeLayer); };
+  if (reduceMotion || latlngs.length < 2) { finish(); return; }
+
+  const cum = [0];
+  for (let i = 1; i < latlngs.length; i++) cum.push(cum[i - 1] + Math.hypot(latlngs[i].lat - latlngs[i - 1].lat, latlngs[i].lng - latlngs[i - 1].lng));
+  const total = cum[cum.length - 1] || 1;
+  const duration = Math.min(2200, Math.max(800, 700 + total * 0.6));
+  const t0 = performance.now() + 250;
+  let k = 0;
+  const frame = now => {
+    if (token !== routeAnimId) return;
+    const p = Math.max(0, Math.min(1, (now - t0) / duration));
+    const target = easeInOutCubic(p) * total;
+    while (k < cum.length - 2 && cum[k + 1] < target) k++;
+    const seg = cum[k + 1] - cum[k] || 1;
+    const f = Math.max(0, Math.min(1, (target - cum[k]) / seg));
+    const a = latlngs[k], b = latlngs[k + 1];
+    const pts = latlngs.slice(0, k + 1);
+    pts.push(L.latLng(a.lat + (b.lat - a.lat) * f, a.lng + (b.lng - a.lng) * f));
+    casing.setLatLngs(pts); line.setLatLngs(pts);
+    if (p < 1) requestAnimationFrame(frame); else finish();
+  };
+  requestAnimationFrame(frame);
+}
+
+function fitRoute(animate = true) {
+  if (!routeBounds) return;
   const opts = isMobile()
     ? { paddingTopLeft: [MOBILE_ROUTE_PADDING.left, MOBILE_ROUTE_PADDING.top], paddingBottomRight: [MOBILE_ROUTE_PADDING.right, MOBILE_ROUTE_PADDING.bottom] }
     : { padding: [60, 60] };
-  map.fitBounds(routeLine.getBounds(), { ...opts, maxZoom: 2 });
+  const o = { ...opts, maxZoom: 2 };
+  if (animate && !reduceMotion) map.flyToBounds(routeBounds, { ...o, duration: 1.1, easeLinearity: .2 });
+  else map.fitBounds(routeBounds, o);
 }
 $("calcBtn").addEventListener("click", calculateRoute);
 
@@ -1082,7 +1224,6 @@ const sidebar = $("sidebar");
 const sheetToggle = $("sheetToggle");
 function setSheet(expanded) {
   sidebar.classList.toggle("collapsed", !expanded);
-  sheetToggle.textContent = expanded ? "▼" : "▲";
 }
 const toggleSheet = () => setSheet(sidebar.classList.contains("collapsed"));
 sheetToggle.addEventListener("click", e => { e.stopPropagation(); toggleSheet(); });
@@ -1102,7 +1243,7 @@ let touchY = null;
 function onLayoutChange() {
   placeZoomControl();
   if (!isMobile()) sidebar.classList.remove("collapsed");
-  setTimeout(() => { map.invalidateSize(); map.setMinZoom(map.getBoundsZoom(imageBounds) - 1); fitRoute(); }, 320);
+  setTimeout(() => { map.invalidateSize(); map.setMinZoom(map.getBoundsZoom(imageBounds) - 1); fitRoute(false); }, 320);
 }
 mobileQuery.addEventListener("change", onLayoutChange);
 window.addEventListener("resize", () => map.invalidateSize());
@@ -1147,6 +1288,7 @@ function tryDevLogin() {
   if (ok) { failedAttempts = 0; closeDevModal(); setDevMode(true); return; }
   failedAttempts++;
   devCodeInput.value = "";
+  devForm.classList.remove("shake"); void devForm.offsetWidth; devForm.classList.add("shake");
   if (failedAttempts >= 5) {
     failedAttempts = 0;
     try { localStorage.setItem(DEV_LOCK_KEY, String(Date.now() + 30000)); } catch (err) {}
@@ -1442,6 +1584,16 @@ $("importDataInput").addEventListener("change", async event => {
   } catch (error) {
     editorStatus.textContent = `Не вдалося імпортувати JSON: ${error.message}`;
   } finally { event.target.value = ""; }
+});
+
+const motionInput = $("motionInput");
+motionInput.checked = !reduceMotion;
+$("motionHint").textContent = systemReduceMotion
+  ? "У системі (телефон/комп’ютер) вимкнено анімації — тому за замовчуванням вони тут не показуються. Постав галочку, щоб увімкнути їх для цієї карти."
+  : "";
+motionInput.addEventListener("change", () => {
+  try { localStorage.setItem(MOTION_KEY, motionInput.checked ? "on" : "off"); } catch (e) {}
+  applyMotion();
 });
 
 /* =====================================================================
