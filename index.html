@@ -52,6 +52,11 @@
     background-repeat: no-repeat; background-position: right 14px center;
   }
   .field select:focus { outline: 2px solid var(--primary); border-color: transparent; }
+  .field input[type="text"] {
+    box-sizing: border-box; width: 100%; padding: 12px; font-size: 15px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text);
+  }
+  .field input[type="text"]:focus { outline: 2px solid var(--primary); border-color: transparent; }
 
   #calcBtn {
     width: 100%; padding: 13px; border: none; border-radius: 24px; background: var(--primary);
@@ -141,8 +146,8 @@
       <button class="sheet-toggle" id="sheetToggle" aria-label="Згорнути/розгорнути панель">▼</button>
     </div>
     <div class="sheet-body">
-      <div class="field"><label for="fromSel">ЗВІДКИ</label><select id="fromSel"></select></div>
-      <div class="field"><label for="toSel">КУДИ</label><select id="toSel"></select></div>
+      <div class="field"><label for="fromSearch">ЗВІДКИ</label><input id="fromSearch" type="text" list="fromPlaces" placeholder="Введи назву місця…" autocomplete="off"><datalist id="fromPlaces"></datalist><select id="fromSel" hidden></select></div>
+      <div class="field"><label for="toSearch">КУДИ</label><input id="toSearch" type="text" list="toPlaces" placeholder="Знайти місце…" autocomplete="off"><datalist id="toPlaces"></datalist><select id="toSel" hidden></select></div>
       <div class="field"><label for="vehicleSel">ТИП ТРАНСПОРТУ</label><select id="vehicleSel"></select></div>
       <button id="calcBtn">Розрахувати маршрут</button>
       <div id="info"></div>
@@ -168,6 +173,7 @@
         <h2>Редактор мережі</h2>
         <p class="tool-help">Спочатку відкалібруй карту. Позначай точки на кожному перехресті, кінцях дороги та її поворотах; з'єднуй сусідні точки дорогами. Дані автоматично зберігаються в цьому браузері.</p>
         <div class="field"><label for="newNodeNameInput">Назва нової точки</label><input id="newNodeNameInput" type="text" placeholder="Напр. Перехрестя біля порту" maxlength="80"></div>
+        <label class="tool-checkbox"><input type="checkbox" id="newNodeSmallInput"> Дрібна / службова точка (не показувати маркер на карті)</label>
         <button class="secondary-btn" id="addNodeModeBtn" type="button">Додати точку: клацни на карті</button>
         <div class="tool-status" id="editorStatus" aria-live="polite">Редактор готовий.</div>
         <hr>
@@ -459,6 +465,10 @@ const calibrationLayer = L.layerGroup().addTo(map);
 let routeLine = null;
 const fromSel = document.getElementById("fromSel");
 const toSel = document.getElementById("toSel");
+const fromSearch = document.getElementById("fromSearch");
+const toSearch = document.getElementById("toSearch");
+const fromPlaces = document.getElementById("fromPlaces");
+const toPlaces = document.getElementById("toPlaces");
 const vehicleSel = document.getElementById("vehicleSel");
 const roadFromSel = document.getElementById("roadFromSel");
 const roadToSel = document.getElementById("roadToSel");
@@ -494,7 +504,10 @@ function populateSelect(select, entries, desiredValue) {
 function refreshMainSelects() {
   const oldFrom = fromSel.value;
   const oldTo = toSel.value;
-  const nodeEntries = Object.entries(NODES).map(([id, node]) => [node.name, id]);
+  // Службові/дрібні точки залишаються в графі доріг, але не є місцями для пошуку маршруту.
+  const nodeEntries = Object.entries(NODES)
+    .filter(([, node]) => node.small !== true)
+    .map(([id, node]) => [node.name, id]);
   populateSelect(fromSel, nodeEntries, oldFrom);
   const destinationEntries = nodeEntries.slice();
   if (pinDestination) destinationEntries.push([`Шпилька · X: ${pinDestination.x}, Z: ${pinDestination.z}`, PIN_DESTINATION_KEY]);
@@ -503,7 +516,35 @@ function refreshMainSelects() {
   if (!oldTo && nodeEntries.length && !pinDestination) toSel.selectedIndex = Math.min(2, nodeEntries.length - 1);
   if (!toSel.value && nodeEntries.length) toSel.selectedIndex = Math.min(2, nodeEntries.length - 1);
   if (toSel.value && toSel.value !== PIN_DESTINATION_KEY && oldTo !== PIN_DESTINATION_KEY) lastNamedDestination = toSel.value;
+  syncPlaceSearches();
 }
+
+function syncPlaceSearches() {
+  const fill = (list, select) => {
+    list.innerHTML = "";
+    Array.from(select.options).forEach(option => {
+      if (!option.value) return;
+      list.appendChild(new Option(option.textContent, option.textContent));
+    });
+  };
+  fill(fromPlaces, fromSel);
+  fill(toPlaces, toSel);
+  const selectedLabel = select => select.selectedOptions[0]?.textContent || "";
+  if (document.activeElement !== fromSearch) fromSearch.value = selectedLabel(fromSel);
+  if (document.activeElement !== toSearch) toSearch.value = selectedLabel(toSel);
+}
+
+function matchPlaceSearch(input, select) {
+  const query = input.value.trim().toLocaleLowerCase("uk");
+  const match = Array.from(select.options).find(option => option.value && option.textContent.trim().toLocaleLowerCase("uk") === query);
+  select.value = match ? match.value : "";
+  if (select === toSel && match && match.value !== PIN_DESTINATION_KEY) lastNamedDestination = match.value;
+}
+
+fromSearch.addEventListener("input", () => matchPlaceSearch(fromSearch, fromSel));
+toSearch.addEventListener("input", () => matchPlaceSearch(toSearch, toSel));
+fromSel.addEventListener("change", syncPlaceSearches);
+toSel.addEventListener("change", syncPlaceSearches);
 
 function refreshEditorSelects() {
   const nodeEntries = Object.entries(NODES).map(([id, node]) => [`${node.name} (X: ${node.x}, Z: ${node.z})`, id]);
@@ -579,6 +620,9 @@ function renderMapData() {
   });
 
   Object.entries(NODES).forEach(([id, node]) => {
+    // Дрібні точки потрібні для графа доріг, але ніколи не малюються.
+    // На віддаленому масштабі ховаємо всі звичайні маркери, щоб карта не захаращувалась.
+    if (node.small || map.getZoom() < 0) return;
     const marker = L.circleMarker(nodeLL(id), {
       radius: 7, color: "#fff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1
     }).addTo(nodeLayer);
@@ -631,6 +675,7 @@ function setPinDestination(clickedLatLng) {
   if (toSel.value !== PIN_DESTINATION_KEY) lastNamedDestination = toSel.value;
   refreshMainSelects();
   toSel.value = PIN_DESTINATION_KEY;
+  syncPlaceSearches();
 
   if (pinMarker) map.removeLayer(pinMarker);
   pinMarker = L.marker(pinDestination.latlng, {
@@ -726,6 +771,7 @@ const calibrationZInput = document.getElementById("calibrationZInput");
 const calibrationStatus = document.getElementById("calibrationStatus");
 const editorStatus = document.getElementById("editorStatus");
 const newNodeNameInput = document.getElementById("newNodeNameInput");
+const newNodeSmallInput = document.getElementById("newNodeSmallInput");
 let selectingCalibrationPoint = false;
 let pendingCalibrationPixel = null;
 let editorAddNodeMode = false;
@@ -801,18 +847,21 @@ function handleMapSelection(event) {
     let index = 1;
     while (NODES[`point_${index}`]) index++;
     const id = `point_${index}`;
-    NODES[id] = { name, x, z };
+    NODES[id] = { name, x, z, ...(newNodeSmallInput.checked ? { small: true } : {}) };
     clearCurrentRoute();
     editorAddNodeMode = false;
     map.getContainer().style.cursor = "";
     document.getElementById("addNodeModeBtn").classList.remove("mode-active");
     newNodeNameInput.value = "";
+    newNodeSmallInput.checked = false;
     renderMapData();
     saveAppData();
     editorStatus.textContent = `Додано «${name}»: X ${x}, Z ${z}. Тепер з'єднай точку з сусідніми дорогами.`;
   }
 }
 map.on("click", handleMapSelection);
+// Перемальовуємо лише відображення мережі після зміни масштабу: вузли зникають далеко.
+map.on("zoomend", () => renderMapData());
 
 document.getElementById("addNodeModeBtn").addEventListener("click", () => {
   editorAddNodeMode = true;
@@ -979,7 +1028,7 @@ document.getElementById("importDataInput").addEventListener("change", async even
     const nextNodes = {};
     for (const [id, node] of Object.entries(data.nodes)) {
       if (!node || typeof node.name !== "string" || !Number.isFinite(Number(node.x)) || !Number.isFinite(Number(node.z))) throw new Error(`Некоректна точка: ${id}`);
-      nextNodes[id] = { name: node.name, x: Number(node.x), z: Number(node.z) };
+      nextNodes[id] = { name: node.name, x: Number(node.x), z: Number(node.z), ...(node.small === true ? { small: true } : {}) };
     }
     const nextRoads = data.roads.map((road, index) => {
       if (!road || !nextNodes[road.from] || !nextNodes[road.to] || !["all", "A_only", "B_only"].includes(road.type)) throw new Error(`Некоректна дорога №${index + 1}`);
@@ -1039,7 +1088,7 @@ function calculateRoute() {
   const isPinTarget = to === PIN_DESTINATION_KEY && pinDestination;
 
   if (!NODES[from] || (!isPinTarget && !NODES[to])) {
-    showError("Спочатку додай точки й дороги в редакторі або вибери наявні пункти маршруту.");
+    showError("Обери місце зі списку підказок. Пошук працює за назвами точок, доданих у карту; нові місця можна створити в редакторі.");
     return;
   }
   if (!isPinTarget && from === to) { showError("Початок і кінець маршруту збігаються."); return; }
