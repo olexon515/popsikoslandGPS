@@ -4,89 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1a73e8">
-<meta name="color-scheme" content="light dark">
-<script>
-  (function () {
-    var t = null;
-    try { t = localStorage.getItem("popsikosland-gps-theme"); } catch (e) {}
-    if (t !== "dark" && t !== "light") t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    document.documentElement.setAttribute("data-theme", t);
-  })();
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&icon_names=auto_awesome,chevron_right,close,cloud_done,cloud_off,dark_mode,directions_car,edit_road,explore,keyboard_arrow_down,light_mode,local_shipping,location_on,lock,lock_open,play_arrow,straighten,swap_vert,visibility,zoom_out_map&display=block">
 <title>Popsikosland GPS</title>
+<script>
+(function(){var t=null;try{t=localStorage.getItem("popsikosland-gps-theme");}catch(e){}
+var dark=t==="dark"||(t!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root {
-    color-scheme: light;
     --primary: #1a73e8;
     --primary-dark: #1557b0;
-    --accent: #1557b0;
-    --primary-soft: #e8f0fe;
-    --primary-soft-b: #c6d4f0;
     --bg: #ffffff;
     --surface: #f1f3f4;
-    --panel: #fafbfc;
-    --hover: #f6f8fc;
-    --seg-pill: #ffffff;
     --text: #202124;
     --text-2: #5f6368;
-    --text-3: #9aa0a6;
     --error: #d93025;
-    --err-bg: #fce8e6;
-    --danger: #b3261e;
-    --danger-b: #efc5c1;
     --ok: #188038;
     --border: #dadce0;
-    --line: #bdc1c6;
-    --handle: #c4c7ca;
-    --tip-bg: rgba(255,255,255,.94);
     --sheet-collapsed: 76px;
     --sheet-expanded: min(66dvh, 560px);
-  }
-  html[data-theme="dark"] {
-    color-scheme: dark;
-    --primary: #4c8df6;
-    --primary-dark: #2f6fd6;
-    --accent: #8ab4f8;
-    --primary-soft: rgba(138,180,248,.16);
-    --primary-soft-b: rgba(138,180,248,.38);
-    --bg: #202226;
-    --surface: #2c2f34;
-    --panel: #26292d;
-    --hover: #2f3338;
-    --seg-pill: #484c53;
-    --text: #e8eaed;
-    --text-2: #a9aeb5;
-    --text-3: #7d838b;
-    --error: #f28b82;
-    --err-bg: rgba(242,139,130,.14);
-    --danger: #f28b82;
-    --danger-b: rgba(242,139,130,.4);
-    --ok: #81c995;
-    --border: #3b3f45;
-    --line: #5a5f66;
-    --handle: #555a61;
-    --tip-bg: rgba(32,34,38,.94);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   html, body { margin: 0; height: 100%; font-family: "Roboto", "Segoe UI", system-ui, sans-serif; color: var(--text); background: #222; }
   button { font-family: inherit; }
-  .mi {
-    font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1;
-    letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr;
-    -webkit-font-smoothing: antialiased; font-feature-settings: "liga"; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
-    vertical-align: middle; flex: none; user-select: none; -webkit-user-select: none;
-  }
-  .mi.sm { font-size: 17px; }
-  html:not(.icons-ready) .mi { color: transparent !important; text-shadow: none !important; overflow: hidden; max-width: 1.2em; }
-  .ic { display: flex; align-items: center; gap: 8px; }
-  .secondary-btn.ic { justify-content: center; }
 
   .app { display: flex; height: 100vh; height: 100dvh; width: 100%; }
 
@@ -105,16 +47,19 @@
   .logo { flex: none; width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #1a73e8, #34a853); display: grid; place-items: center; font-size: 22px; }
   .sheet-title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.2; }
   .sheet-title small { display: block; font-size: 12px; font-weight: 400; color: var(--text-2); margin-top: 2px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .round-btn.sheet-toggle { display: none; }
+  .sheet-toggle {
+    display: none; flex: none; border: none; background: var(--surface); color: var(--text-2);
+    width: 40px; height: 40px; border-radius: 50%; font-size: 16px; cursor: pointer;
+  }
   .sheet-body { padding: 16px 20px 24px; overflow-y: auto; flex: 1; overscroll-behavior: contain; }
 
   /* ---------- Route form ---------- */
   .route-fields { display: flex; gap: 10px; align-items: stretch; }
   .dots { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
   .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
-  .dot.from { border: 3px solid var(--primary); background: var(--bg); }
+  .dot.from { border: 3px solid var(--primary); background: #fff; }
   .dot.to { background: var(--error); }
-  .dots .line { flex: 1; border-left: 2px dotted var(--line); margin: 4px 0; }
+  .dots .line { flex: 1; border-left: 2px dotted #bdc1c6; margin: 4px 0; }
   .inputs { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .field { position: relative; }
   .field input[type="text"], .field input[type="password"] {
@@ -129,23 +74,23 @@
   .clear-x:hover { background: var(--surface); }
   .swap {
     align-self: center; flex: none; width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 50%;
-    background: var(--bg); color: var(--text-2); cursor: pointer; display: grid; place-items: center;
+    background: #fff; font-size: 18px; color: var(--text-2); cursor: pointer;
   }
   .swap:hover { background: var(--surface); }
   .combo-list {
-    position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: var(--bg);
-    border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: #fff;
+    border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.2);
     z-index: 30; max-height: 280px; overflow-y: auto;
   }
   .opt { padding: 12px 14px; cursor: pointer; font-size: 15px; }
-  .opt + .opt { border-top: 1px solid var(--surface); }
-  .opt.active, .opt:hover { background: var(--primary-soft); }
+  .opt + .opt { border-top: 1px solid #f1f3f4; }
+  .opt.active, .opt:hover { background: #e8f0fe; }
   .opt.empty { color: var(--text-2); cursor: default; }
   .opt.empty:hover { background: transparent; }
 
   .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--surface); padding: 4px; border-radius: 14px; margin-top: 14px; }
-  .seg button { display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; background: transparent; padding: 11px 8px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer; }
-  .seg button[aria-checked="true"] { color: var(--accent); }
+  .seg button { border: 0; background: transparent; padding: 11px 8px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer; }
+  .seg button[aria-checked="true"] { background: #fff; color: var(--primary-dark); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 
   .actions { display: flex; gap: 8px; margin-top: 14px; }
   #calcBtn {
@@ -154,93 +99,76 @@
     box-shadow: 0 1px 3px rgba(0,0,0,.3);
   }
   #calcBtn:hover { background: var(--primary-dark); }
-  #clearRouteBtn { height: 48px; padding: 0 18px; border: 1px solid var(--border); border-radius: 24px; background: var(--bg); color: var(--text); font-size: 14px; cursor: pointer; }
+  #clearRouteBtn { height: 48px; padding: 0 18px; border: 1px solid var(--border); border-radius: 24px; background: #fff; color: var(--text); font-size: 14px; cursor: pointer; }
 
   /* ---------- Info ---------- */
   #info { margin-top: 16px; padding: 14px; border-radius: 14px; background: var(--surface); font-size: 14px; line-height: 1.5; display: none; }
-  #info.error { background: var(--err-bg); color: var(--error); display: block; }
+  #info.error { background: #fce8e6; color: var(--error); display: block; }
   #info.ok { display: block; }
   #info .big { font-size: 22px; font-weight: 600; color: var(--ok); }
   #info .sub { color: var(--text-2); font-size: 13px; margin-bottom: 10px; }
   #info .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  #info .chip { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 3px 10px; font-size: 13px; }
-  #info .arrow { color: var(--text-2); display: inline-flex; }
-  #info .sub .mi { color: var(--text-2); margin-top: -2px; }
+  #info .chip { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 3px 10px; font-size: 13px; }
+  #info .arrow { color: var(--text-2); font-size: 12px; }
 
   .legend { margin-top: 18px; font-size: 12px; color: var(--text-2); line-height: 1.9; }
   .legend summary { cursor: pointer; font-weight: 500; padding: 6px 0; }
   .legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
-  .pin-help { margin-bottom: 6px; font-weight: 500; color: var(--text); display: flex; align-items: flex-start; gap: 6px; }
-  .pin-help .mi { color: var(--error); }
-  .legend .row { display: flex; align-items: center; gap: 4px; }
+  .pin-help { margin-bottom: 6px; font-weight: 500; color: #3c4043; }
 
   /* ---------- Developer area ---------- */
   .dev-zone { margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--border); }
-  .dev-open { border: 0; background: transparent; color: var(--text-3); font-size: 12px; cursor: pointer; padding: 8px 0; }
-  .dev-open { display: flex; align-items: center; gap: 6px; }
+  .dev-open { border: 0; background: transparent; color: #9aa0a6; font-size: 12px; cursor: pointer; padding: 8px 0; }
   .dev-open:hover { color: var(--text-2); }
 
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-start; justify-content: center; z-index: 5000; padding: 12vh 16px 16px; overflow-y: auto; }
-  .modal-card { width: 100%; max-width: 340px; background: var(--bg); color: var(--text); border-radius: 18px; padding: 22px; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
-  .modal-card h2 { margin: 0 0 6px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .modal-card { width: 100%; max-width: 340px; background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+  .modal-card h2 { margin: 0 0 6px; font-size: 18px; }
   .modal-card p { margin: 0 0 14px; font-size: 13px; color: var(--text-2); }
   .modal-card input { letter-spacing: 6px; text-align: center; font-size: 20px !important; }
   .modal-error { min-height: 20px; margin-top: 8px; color: var(--error); font-size: 13px; }
   .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
-  .modal-actions button { flex: 1; height: 44px; border-radius: 22px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; cursor: pointer; }
+  .modal-actions button { flex: 1; height: 44px; border-radius: 22px; border: 1px solid var(--border); background: #fff; font-size: 14px; cursor: pointer; }
   .modal-actions button[type="submit"] { background: var(--primary); color: #fff; border-color: var(--primary); }
 
   /* ---------- Map ---------- */
   #map { flex: 1; height: 100%; background: #1d2a1d; }
   .leaflet-container { font-family: inherit; }
   .leaflet-image-layer { image-rendering: pixelated; image-rendering: crisp-edges; -ms-interpolation-mode: nearest-neighbor; }
-  .node-label { background: var(--tip-bg); border: none; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.4); font-weight: 500; color: var(--text); padding: 2px 6px; }
-  .destination-pin { position: relative; text-align: center; filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
-  .destination-pin .pin-glyph { display: block; width: 32px; height: 34px; font-size: 38px; line-height: 34px; color: #d93025; }
-  .arrow-icon { color: #fff; width: 14px; height: 14px; display: grid; place-items: center; filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 2px #000); }
-  .arrow-icon .mi { font-size: 16px; }
-  .popup-btns button { margin: 6px 6px 0 0; padding: 7px 12px; border: 1px solid var(--primary); background: var(--bg); color: var(--accent); border-radius: 14px; cursor: pointer; font-size: 13px; }
-  .popup-btns button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-  .home-btn { width: 34px; height: 34px; text-decoration: none; display: grid !important; place-items: center; }
-  .home-btn .mi { font-size: 20px; }
-  .leaflet-bar a, .leaflet-bar a:hover, .leaflet-bar a:focus { background-color: var(--bg); color: var(--text); border-bottom-color: var(--border); }
-  .leaflet-bar a:hover { background-color: var(--hover); }
-  .leaflet-bar a.leaflet-disabled { background-color: var(--surface); color: var(--text-3); }
-  .leaflet-bar { border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--bg); color: var(--text); }
-  .leaflet-container a.leaflet-popup-close-button { color: var(--text-2); }
-  .leaflet-tooltip-top.node-label::before { border-top-color: var(--tip-bg); }
-  html[data-theme="dark"] .leaflet-image-layer { filter: brightness(.74) contrast(1.05) saturate(.9); }
+  .node-label { background: rgba(255,255,255,.94); border: none; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.4); font-weight: 500; color: var(--text); padding: 2px 6px; }
+  .destination-pin { font-size: 29px; line-height: 32px; text-align: center; filter: drop-shadow(0 1px 2px rgba(0,0,0,.65)); }
+  .arrow-icon { color: #fff; font-size: 14px; text-shadow: 0 0 3px #000, 0 0 3px #000; line-height: 14px; text-align: center; }
+  .popup-btns button { margin: 6px 6px 0 0; padding: 7px 12px; border: 1px solid var(--primary); background: #fff; color: var(--primary); border-radius: 14px; cursor: pointer; font-size: 13px; }
+  .popup-btns button.primary { background: var(--primary); color: #fff; }
+  .home-btn { width: 34px; height: 34px; line-height: 34px; text-align: center; font-size: 18px; text-decoration: none; color: #333; background: #fff; display: block; }
 
   .tool-toggle, .secondary-btn {
     width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px;
-    background: var(--bg); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+    background: #fff; color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
   }
-  .tool-toggle { margin-top: 10px; text-align: left; display: flex; align-items: center; gap: 8px; }
+  .tool-toggle { margin-top: 10px; text-align: left; }
   .secondary-btn { margin-top: 8px; }
-  .tool-panel { margin-top: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+  .tool-panel { margin-top: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #fafbfc; }
   .tool-panel h2 { margin: 0 0 8px; font-size: 15px; }
   .tool-help, .tool-status { margin: 6px 0 10px; color: var(--text-2); font-size: 12px; line-height: 1.45; }
-  .tool-status { color: var(--accent); font-weight: 500; }
+  .tool-status { color: var(--primary-dark); font-weight: 500; }
   .tool-panel .field { margin-bottom: 10px; }
   .tool-panel label.lbl { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4px; font-weight: 500; }
   .tool-panel input[type="text"], .tool-panel input[type="number"], .tool-panel select {
     width: 100%; min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--border);
-    border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;
+    border-radius: 8px; background: #fff; color: var(--text); font-size: 14px;
   }
   .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .tool-grid .field { min-width: 0; }
-  .tool-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 8px 0; cursor: pointer; }
-  .tool-checkbox input { accent-color: var(--primary); width: 16px; height: 16px; flex: none; }
-  .tool-danger { border-color: var(--danger-b); color: var(--danger); }
+  .tool-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 8px 0; }
+  .tool-danger { border-color: #efc5c1; color: #b3261e; }
   .tool-list { margin: 8px 0; padding: 0; list-style: none; font-size: 12px; }
-  .tool-list li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .tool-list li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #e5e7eb; }
   .tool-list li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-  .tool-list li button { border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text-2); padding: 3px 5px; cursor: pointer; display: grid; place-items: center; }
-  .tool-list li button .mi { font-size: 16px; }
+  .tool-list li button { border: 1px solid var(--border); border-radius: 6px; background: #fff; padding: 3px 7px; cursor: pointer; }
   .tool-panel hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
   .tool-panel .file-input { display: none; }
-  .mode-active { background: var(--primary-soft) !important; border-color: var(--primary) !important; color: var(--accent) !important; }
+  .mode-active { background: #e8f0fe !important; border-color: var(--primary) !important; color: var(--primary-dark) !important; }
 
   /* ---------- Mobile: bottom sheet ---------- */
   @media (max-width: 768px) {
@@ -253,12 +181,11 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
     #sidebar.collapsed { height: calc(var(--sheet-collapsed) + env(safe-area-inset-bottom)); }
-    .sheet-handle { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--handle); margin: 8px auto 0; cursor: pointer; }
+    .sheet-handle { display: block; width: 44px; height: 5px; border-radius: 3px; background: #c4c7ca; margin: 8px auto 0; cursor: pointer; }
     .sheet-header { padding: 8px 16px 10px; border-bottom: none; cursor: pointer; }
     .sheet-title small { max-width: calc(100vw - 150px); }
-    .round-btn.sheet-toggle { display: grid; }
-    .sheet-toggle .mi { transition: transform .5s cubic-bezier(.32,.72,0,1); }
-    #sidebar.collapsed .sheet-toggle .mi { transform: rotate(180deg); }
+    .sheet-toggle { display: block; transition: transform .5s cubic-bezier(.32,.72,0,1); }
+    #sidebar.collapsed .sheet-toggle { transform: rotate(180deg); }
     .sheet-body { padding: 4px 16px 24px; transition: opacity .3s ease .12s; }
     #sidebar.collapsed .sheet-body { opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility 0s .15s; }
     .field input[type="text"], .field input[type="password"],
@@ -282,7 +209,7 @@
 
   button, .opt, .clear-x { transition: background-color .2s, border-color .2s, color .2s, box-shadow .25s, transform .2s var(--ease-out); }
   button:active:not(:disabled) { transform: scale(.97); }
-  .secondary-btn:hover, .tool-toggle:hover { background: var(--hover); border-color: var(--primary-soft-b); }
+  .secondary-btn:hover, .tool-toggle:hover { background: #f6f8fc; border-color: #c6d4f0; }
   .swap { transition: transform .55s var(--ease-spring), background-color .2s; }
   .combo-list:not([hidden]) { animation: popIn .22s var(--ease-out); transform-origin: 50% 0; }
   .clear-x:not([hidden]) { animation: fadeIn .2s; }
@@ -290,7 +217,7 @@
   .seg { position: relative; }
   .seg::before {
     content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 12px) / 2);
-    border-radius: 10px; background: var(--seg-pill); box-shadow: 0 1px 4px rgba(0,0,0,.22);
+    border-radius: 10px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.22);
     transform: translateX(calc(var(--i, 0) * (100% + 4px))); transition: transform .45s var(--ease-spring);
   }
   .seg button { position: relative; z-index: 1; }
@@ -329,22 +256,47 @@
   }
   .motion-row { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   .motion-row small { display: block; color: var(--text-2); font-size: 12px; line-height: 1.45; }
-  .motion-row .ver { margin-top: 6px; color: var(--text-3); font-size: 11px; }
-  .motion-row .tool-checkbox { gap: 8px; }
-  .offline-state { display: flex !important; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--text-2); }
-  .offline-state.ok { color: var(--ok); }
-  .offline-state .mi { font-size: 18px; }
+  .motion-row .ver { margin-top: 6px; color: #9aa0a6; font-size: 11px; }
 
-  /* header buttons + logo + theme */
-  .head-actions { display: flex; align-items: center; gap: 6px; flex: none; }
-  .round-btn { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border: none; border-radius: 50%; background: var(--surface); color: var(--text-2); cursor: pointer; }
-  .round-btn:hover { background: var(--primary-soft); color: var(--accent); }
-  .round-btn .mi { font-size: 22px; }
-  .theme-btn .mi { animation: themeSpin .6s var(--ease-spring); }
-  @keyframes themeSpin { from { transform: rotate(-120deg) scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
-  .logo .mi { color: #fff; font-size: 26px; }
-  html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after { transition: background-color .4s ease, color .4s ease, border-color .4s ease, box-shadow .4s ease !important; }
-  .leaflet-image-layer { transition: filter .5s ease; }
+  /* ---------- Темна тема ---------- */
+  :root { --card: #ffffff; --hover: #e8f0fe; --panel: #fafbfc; --err-bg: #fce8e6; --danger: #b3261e; --danger-b: #efc5c1; }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --primary: #8ab4f8; --primary-dark: #aecbfa;
+    --bg: #202124; --surface: #303134; --text: #e8eaed; --text-2: #9aa0a6;
+    --error: #f28b82; --ok: #81c995; --border: #4a4d51;
+    --card: #2d2e31; --hover: #3a4358; --panel: #28292c; --err-bg: #4a2522; --danger: #f28b82; --danger-b: #6b3a36;
+  }
+  .dot.from, .swap, .combo-list, #clearRouteBtn, #info .chip, .modal-card, .modal-actions button,
+  .popup-btns button, .home-btn, .tool-toggle, .secondary-btn, .tool-list li button,
+  .field input[type="text"], .field input[type="password"],
+  .tool-panel input[type="text"], .tool-panel input[type="number"], .tool-panel select { background: var(--card); color: var(--text); }
+  .dot.from { border-color: var(--primary); }
+  .opt + .opt { border-top-color: var(--surface); }
+  .opt.active, .opt:hover, .mode-active { background: var(--hover) !important; }
+  .tool-panel { background: var(--panel); }
+  #info.error { background: var(--err-bg); }
+  .tool-danger { border-color: var(--danger-b); color: var(--danger); }
+  .tool-list li { border-bottom-color: var(--border); }
+  .pin-help { color: var(--text); }
+  .home-btn { color: var(--text); }
+  .seg::before { background: var(--card); }
+  .secondary-btn:hover, .tool-toggle:hover { background: var(--hover); border-color: var(--border); }
+  .popup-btns button.primary, .modal-actions button[type="submit"] { background: var(--primary); color: #fff; }
+  html[data-theme="dark"] .popup-btns button.primary,
+  html[data-theme="dark"] .modal-actions button[type="submit"] { color: #202124; }
+  html[data-theme="dark"] .sheet-handle { background: #5f6368; }
+  html[data-theme="dark"] .dots .line { border-left-color: #5f6368; }
+  html[data-theme="dark"] .node-label { background: rgba(48,49,52,.95); color: var(--text); }
+  html[data-theme="dark"] .leaflet-popup-content-wrapper,
+  html[data-theme="dark"] .leaflet-popup-tip { background: var(--card); color: var(--text); }
+  html[data-theme="dark"] .leaflet-popup-close-button { color: var(--text-2); }
+  html[data-theme="dark"] .leaflet-bar a { background: var(--card); color: var(--text); border-bottom-color: var(--border); }
+  html[data-theme="dark"] .leaflet-bar a:hover { background: var(--hover); }
+  html[data-theme="dark"] #info .chip { border-color: var(--border); }
+  html[data-theme="dark"] .field input::placeholder { color: var(--text-2); }
+  html[data-theme="dark"] #map { filter: brightness(.82) contrast(1.05); }
+  html[data-theme="dark"] .leaflet-control-container, html[data-theme="dark"] .leaflet-popup-pane, html[data-theme="dark"] .leaflet-tooltip-pane { filter: brightness(1.22); }
 </style>
 </head>
 <body>
@@ -353,13 +305,10 @@
     <div class="sheet-handle" id="sheetHandle"></div>
     <div class="sheet-header" id="sheetHeader">
       <div class="brand">
-        <div class="logo"><span class="mi">explore</span></div>
+        <div class="logo">🧭</div>
         <h1 class="sheet-title">Popsikosland GPS<small id="headerSummary">Знайди найкращий маршрут</small></h1>
       </div>
-      <div class="head-actions">
-        <button class="round-btn theme-btn" id="themeBtn" type="button" aria-label="Змінити тему"></button>
-        <button class="round-btn sheet-toggle" id="sheetToggle" type="button" aria-label="Згорнути/розгорнути панель"><span class="mi">keyboard_arrow_down</span></button>
-      </div>
+      <button class="sheet-toggle" id="sheetToggle" aria-label="Згорнути/розгорнути панель">▼</button>
     </div>
 
     <div class="sheet-body">
@@ -368,16 +317,16 @@
         <div class="inputs">
           <div class="field">
             <input id="fromSearch" type="text" placeholder="Звідки…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Звідки">
-            <button class="clear-x" type="button" data-clear="from" aria-label="Очистити" hidden><span class="mi sm">close</span></button>
+            <button class="clear-x" type="button" data-clear="from" aria-label="Очистити" hidden>✕</button>
             <div class="combo-list" id="fromList" role="listbox" hidden></div>
           </div>
           <div class="field">
             <input id="toSearch" type="text" placeholder="Куди…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Куди">
-            <button class="clear-x" type="button" data-clear="to" aria-label="Очистити" hidden><span class="mi sm">close</span></button>
+            <button class="clear-x" type="button" data-clear="to" aria-label="Очистити" hidden>✕</button>
             <div class="combo-list" id="toList" role="listbox" hidden></div>
           </div>
         </div>
-        <button class="swap" id="swapBtn" type="button" aria-label="Поміняти місцями" title="Поміняти місцями"><span class="mi">swap_vert</span></button>
+        <button class="swap" id="swapBtn" type="button" aria-label="Поміняти місцями" title="Поміняти місцями">⇅</button>
       </div>
 
       <div class="seg" id="vehicleSeg" role="radiogroup" aria-label="Тип транспорту"></div>
@@ -391,29 +340,29 @@
 
       <details class="legend">
         <summary>Умовні позначення</summary>
-        <div class="pin-help"><span class="mi sm">location_on</span><span>ПКМ на комп’ютері або довге натискання на карті: поставити пункт призначення</span></div>
-        <div class="row"><i style="border-color:#9aa0a6"></i>Відкрита дорога (весь транспорт)</div>
-        <div class="row"><i style="border-color:#f9ab00;border-top-style:dashed"></i>Лише легкий транспорт (вузька вулиця)</div>
-        <div class="row"><i style="border-color:#34a853;border-top-style:dashed"></i>Лише вантажний транспорт</div>
-        <div class="row"><span class="mi sm" style="width:22px;margin-right:2px;text-align:center">play_arrow</span>Односторонній рух (стрілка показує напрямок)</div>
+        <div class="pin-help">📍 ПКМ на комп’ютері або довге натискання на карті: поставити пункт призначення</div>
+        <div><i style="border-color:#9aa0a6"></i>Відкрита дорога (весь транспорт)</div>
+        <div><i style="border-color:#f9ab00;border-top-style:dashed"></i>Лише легкий транспорт (вузька вулиця)</div>
+        <div><i style="border-color:#34a853;border-top-style:dashed"></i>Лише вантажний транспорт</div>
+        <div>➤ Односторонній рух (стрілка показує напрямок)</div>
       </details>
 
       <div class="motion-row">
-        <label class="tool-checkbox" style="margin:0"><input type="checkbox" id="motionInput"> <span class="mi sm">auto_awesome</span> Анімації</label>
+        <label class="tool-checkbox" style="margin:0 0 8px"><input type="checkbox" id="themeInput"> 🌙 Темна тема</label>
+        <label class="tool-checkbox" style="margin:0"><input type="checkbox" id="motionInput"> ✨ Анімації</label>
         <small id="motionHint"></small>
-        <small class="ver">Версія: 2026-10-17 · офлайн v4</small>
-        <small class="offline-state" id="offlineState"></small>
+        <small class="ver">Версія: 2026-10-16 · анімації v2</small>
       </div>
 
       <!-- ===== Зона розробника: видима лише після введення коду ===== -->
       <div class="dev-zone">
-        <button class="dev-open" id="devOpenBtn" type="button"><span class="mi sm">lock</span>Режим розробника</button>
+        <button class="dev-open" id="devOpenBtn" type="button">🔒 Режим розробника</button>
         <div id="devTools" hidden>
-          <button class="secondary-btn ic" id="devExitBtn" type="button"><span class="mi sm">lock_open</span>Вийти з режиму розробника</button>
-          <label class="tool-checkbox"><input type="checkbox" id="showSmallInput"> <span class="mi sm">visibility</span> Показувати службові точки на карті</label>
+          <button class="secondary-btn" id="devExitBtn" type="button">🔓 Вийти з режиму розробника</button>
+          <label class="tool-checkbox"><input type="checkbox" id="showSmallInput"> 👁 Показувати службові точки на карті</label>
           <div class="tool-status" id="smallStatus"></div>
 
-          <button class="tool-toggle" id="toggleCalibrationBtn" type="button"><span class="mi sm">straighten</span>Калібрування карти</button>
+          <button class="tool-toggle" id="toggleCalibrationBtn" type="button">🧭 Калібрування карти</button>
           <div class="tool-panel" id="calibrationPanel" hidden>
             <h2>Прив'язка до Minecraft</h2>
             <p class="tool-help">Увімкни вибір, клацни на добре впізнавану точку на зображенні та введи її X і Z з екрана F3. Додай щонайменше 2 точки, рознесені по карті; 3–4 точки зазвичай дають кращу перевірку.</p>
@@ -430,7 +379,7 @@
             <button class="secondary-btn" id="resetCalibrationBtn" type="button">Скинути калібрування</button>
           </div>
 
-          <button class="tool-toggle" id="toggleEditorBtn" type="button"><span class="mi sm">edit_road</span>Редактор точок і доріг</button>
+          <button class="tool-toggle" id="toggleEditorBtn" type="button">🛠️ Редактор точок і доріг</button>
           <div class="tool-panel" id="editorPanel" hidden>
             <h2>Редактор мережі</h2>
             <p class="tool-help">Спочатку відкалібруй карту. Позначай точки на кожному перехресті, кінцях дороги та її поворотах; з'єднуй сусідні точки дорогами. Дані автоматично зберігаються в цьому браузері. Щоб карта працювала в усіх, експортуй JSON і поклади його поруч з index.html під назвою <b>data.json</b>.</p>
@@ -466,7 +415,7 @@
 
 <div class="modal" id="devModal" hidden>
   <form class="modal-card" id="devForm" autocomplete="off" novalidate>
-    <h2><span class="mi">lock</span>Режим розробника</h2>
+    <h2>🔒 Режим розробника</h2>
     <p>Введи 8-значний код розробника, щоб відкрити калібрування та редактор.</p>
     <div class="field"><input id="devCodeInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••••" aria-label="Код розробника"></div>
     <div class="modal-error" id="devError" aria-live="polite"></div>
@@ -477,12 +426,6 @@
   </form>
 </div>
 
-<script>
-  /* Реєстрація офлайн-режиму окремо від основного коду, щоб вона працювала навіть якщо щось інше не завантажилось */
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
-  }
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* =====================================================================
@@ -525,8 +468,8 @@ const DEFAULT_CALIBRATION = {
 };
 
 const VEHICLES = {
-  A: { label: "Варіант A – Легковий транспорт", icon: "directions_car", chip: "Легковий", short: "легковий транспорт", allowed: ["all", "A_only"] },
-  B: { label: "Варіант B – Вантажівка", icon: "local_shipping", chip: "Вантажівка", short: "вантажівка", allowed: ["all", "B_only"] }
+  A: { label: "Варіант A – Легковий транспорт", chip: "🚗 Легковий", short: "легковий транспорт", allowed: ["all", "A_only"] },
+  B: { label: "Варіант B – Вантажівка", chip: "🚚 Вантажівка", short: "вантажівка", allowed: ["all", "B_only"] }
 };
 const ANY_ROAD = ["all", "A_only", "B_only"];
 const ROAD_STYLE = { all: "#9aa0a6", A_only: "#f9ab00", B_only: "#34a853" };
@@ -797,7 +740,7 @@ function placeZoomControl() {
     onAdd() {
       const b = L.DomUtil.create("a", "leaflet-bar home-btn");
       b.href = "#"; b.title = "Показати всю карту"; b.setAttribute("role", "button"); b.setAttribute("aria-label", "Показати всю карту");
-      b.innerHTML = mi("zoom_out_map");
+      b.textContent = "⤢";
       L.DomEvent.disableClickPropagation(b);
       L.DomEvent.on(b, "click", e => { L.DomEvent.stop(e); map.fitBounds(imageBounds); });
       return b;
@@ -827,43 +770,6 @@ const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 const easeInOutCubic = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 const $ = id => document.getElementById(id);
-const mi = (name, cls = "") => `<span class="mi ${cls}" aria-hidden="true">${name}</span>`;
-
-// Іконки: показуємо лише коли шрифт Material Symbols завантажився (інакше були б видні слова-назви)
-(function waitIcons() {
-  const ready = () => document.documentElement.classList.add("icons-ready");
-  if (!document.fonts || !document.fonts.load) { ready(); return; }
-  document.fonts.load('24px "Material Symbols Rounded"', "explore").then(ready, ready);
-  setTimeout(() => { if (document.fonts.check && document.fonts.check('24px "Material Symbols Rounded"')) ready(); }, 3000);
-})();
-
-// Тема (світла / темна)
-const THEME_KEY = "popsikosland-gps-theme";
-const themeBtn = $("themeBtn");
-const themeMeta = document.querySelector('meta[name="theme-color"]');
-function paintThemeBtn() {
-  const dark = document.documentElement.dataset.theme === "dark";
-  themeBtn.innerHTML = mi(dark ? "light_mode" : "dark_mode");
-  const label = dark ? "Увімкнути світлу тему" : "Увімкнути темну тему";
-  themeBtn.title = label; themeBtn.setAttribute("aria-label", label);
-  if (themeMeta) themeMeta.setAttribute("content", dark ? "#202226" : "#1a73e8");
-}
-function setTheme(theme, save) {
-  const root = document.documentElement;
-  root.classList.add("theme-anim");
-  root.dataset.theme = theme;
-  if (save) { try { localStorage.setItem(THEME_KEY, theme); } catch (e) {} }
-  paintThemeBtn();
-  clearTimeout(setTheme.t); setTheme.t = setTimeout(() => root.classList.remove("theme-anim"), 500);
-}
-themeBtn.addEventListener("click", e => { e.stopPropagation(); setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true); });
-themeBtn.addEventListener("touchstart", e => e.stopPropagation(), { passive: true });
-themeBtn.addEventListener("touchend", e => e.stopPropagation(), { passive: true });
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
-  let saved = null; try { saved = localStorage.getItem(THEME_KEY); } catch (err) {}
-  if (!saved) setTheme(e.matches ? "dark" : "light", false);
-});
-paintThemeBtn();
 const infoBox = $("info");
 const smallStatus = $("smallStatus");
 const showSmallInput = $("showSmallInput");
@@ -976,7 +882,7 @@ function renderView() {
       L.marker(arrow.ll, {
         interactive: false, keyboard: false,
         icon: L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
-          html: `<div class="arrow-icon" style="transform:rotate(${arrow.angle}deg)"><span class="mi">play_arrow</span></div>` })
+          html: `<div class="arrow-icon" style="transform:rotate(${arrow.angle}deg)">➤</div>` })
       }).addTo(viewLayer);
       if (++shown >= MAX_VISIBLE_ARROWS) break;
     }
@@ -1099,7 +1005,7 @@ function renderVehicleSeg() {
   Object.entries(VEHICLES).forEach(([key, v]) => {
     const b = document.createElement("button");
     b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(key === vehicle));
-    b.innerHTML = `${mi(v.icon)}<span>${v.chip}</span>`; b.title = v.label;
+    b.textContent = v.chip; b.title = v.label;
     b.addEventListener("click", () => {
       vehicle = key;
       try { localStorage.setItem(VEHICLE_KEY, key); } catch (e) {}
@@ -1167,7 +1073,7 @@ function setPinDestination(clickedLatLng) {
 
   if (pinMarker) map.removeLayer(pinMarker);
   pinMarker = L.marker(pinDestination.latlng, {
-    icon: L.divIcon({ className: "destination-pin", html: '<span class="pin-glyph mi">location_on</span><span class="pin-ring"></span>', iconSize: [32, 34], iconAnchor: [16, 32] }), keyboard: false
+    icon: L.divIcon({ className: "destination-pin", html: '<span class="pin-glyph">📍</span><span class="pin-ring"></span>', iconSize: [32, 34], iconAnchor: [16, 32] }), keyboard: false
   }).addTo(map);
 
   const popup = document.createElement("div");
@@ -1282,14 +1188,14 @@ function calculateRoute() {
 
   infoBox.className = "ok"; infoBox.innerHTML = "";
   const big = document.createElement("div"); big.className = "big"; countUp(big, blocks, " блоків");
-  const sub = document.createElement("div"); sub.className = "sub"; sub.innerHTML = `${km} км · ${mi(VEHICLES[veh].icon, "sm")} ${VEHICLES[veh].chip}`;
+  const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = `${km} км · ${VEHICLES[veh].chip}`;
   const chips = document.createElement("div"); chips.className = "chips";
   steps.forEach((name, i) => {
-    if (i) { const a = document.createElement("span"); a.className = "arrow"; a.style.setProperty("--i", i); a.innerHTML = mi("chevron_right", "sm"); chips.appendChild(a); }
+    if (i) { const a = document.createElement("span"); a.className = "arrow"; a.style.setProperty("--i", i); a.textContent = "➔"; chips.appendChild(a); }
     const c = document.createElement("span"); c.className = "chip"; c.style.setProperty("--i", i); c.textContent = name; chips.appendChild(c);
   });
   infoBox.append(big, sub, chips);
-  headerSummary.textContent = `${labelFor(fromId)} → ${isPin ? "Шпилька" : labelFor(toId)} · ${blocks} блоків`;
+  headerSummary.textContent = `${labelFor(fromId)} ➔ ${isPin ? "Шпилька" : labelFor(toId)} · ${blocks} блоків`;
 
   if (isMobile()) setSheet(false);
   fitRoute();
@@ -1523,7 +1429,7 @@ function renderCalibrationPoints() {
       const li = document.createElement("li");
       const span = document.createElement("span");
       span.textContent = `#${index + 1}: піксель (${point.px.toFixed(1)}, ${point.py.toFixed(1)}) → X ${point.x}, Z ${point.z}`;
-      const remove = document.createElement("button"); remove.type = "button"; remove.innerHTML = mi("close", "sm");
+      const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "✕";
       remove.setAttribute("aria-label", `Видалити точку прив'язки ${index + 1}`);
       remove.addEventListener("click", () => { calibrationPoints.splice(index, 1); renderCalibrationPoints(); saveAppData(); });
       li.append(span, remove); list.appendChild(li);
@@ -1726,6 +1632,25 @@ $("importDataInput").addEventListener("change", async event => {
   } finally { event.target.value = ""; }
 });
 
+const themeInput = $("themeInput");
+const THEME_KEY = "popsikosland-gps-theme";
+const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+function applyTheme() {
+  let pref = null;
+  try { pref = localStorage.getItem(THEME_KEY); } catch (e) {}
+  const dark = pref === "dark" || (pref !== "light" && themeMedia.matches);
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", dark ? "#202124" : "#1a73e8");
+  themeInput.checked = dark;
+}
+themeInput.addEventListener("change", () => {
+  try { localStorage.setItem(THEME_KEY, themeInput.checked ? "dark" : "light"); } catch (e) {}
+  applyTheme();
+});
+themeMedia.addEventListener("change", () => { let p = null; try { p = localStorage.getItem(THEME_KEY); } catch (e) {} if (!p) applyTheme(); });
+applyTheme();
+
 const motionInput = $("motionInput");
 motionInput.checked = !reduceMotion;
 $("motionHint").textContent = systemReduceMotion
@@ -1735,39 +1660,6 @@ motionInput.addEventListener("change", () => {
   try { localStorage.setItem(MOTION_KEY, motionInput.checked ? "on" : "off"); } catch (e) {}
   applyMotion();
 });
-
-/* =====================================================================
-   ОФЛАЙН-РЕЖИМ (service worker)
-   ===================================================================== */
-const offlineState = $("offlineState");
-function showOffline(icon, text, ok) {
-  offlineState.className = "offline-state" + (ok ? " ok" : "");
-  offlineState.innerHTML = (icon ? mi(icon) : "") + "<span></span>";
-  offlineState.lastChild.textContent = text;
-}
-async function offlineReady() {
-  const leafletSrc = (document.querySelector('script[src*="leaflet"]') || {}).src;
-  const checks = [new URL("index.html", location.href).href, new URL(MAP_IMAGE_URL, location.href).href];
-  if (leafletSrc) checks.push(leafletSrc);
-  const found = await Promise.all(checks.map(u => caches.match(u, { ignoreSearch: true, ignoreVary: true })));
-  return found.every(Boolean);
-}
-async function refreshOfflineState(tries = 0) {
-  if (!("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) {
-    showOffline("cloud_off", "Офлайн-режим працює лише коли сайт відкрито за адресою https (наприклад, на GitHub Pages).", false); return;
-  }
-  if (!navigator.onLine) { showOffline("cloud_off", "Немає мережі · працюю зі збережених даних", false); return; }
-  let ok = false;
-  try { ok = await offlineReady(); } catch (e) {}
-  if (ok) { showOffline("cloud_done", "Офлайн-режим готовий · карта збережена на цьому пристрої", true); return; }
-  if (tries < 8) { showOffline("", "Зберігаю карту для офлайн-режиму…", false); setTimeout(() => refreshOfflineState(tries + 1), 2500); }
-  else showOffline("cloud_off", "Збережено не все. Відкрий сайт онлайн ще раз і зачекай хвилину.", false);
-}
-window.addEventListener("online", () => refreshOfflineState());
-window.addEventListener("offline", () => refreshOfflineState());
-if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-  navigator.serviceWorker.ready.then(() => refreshOfflineState(), () => refreshOfflineState());
-} else refreshOfflineState();
 
 /* =====================================================================
    START
