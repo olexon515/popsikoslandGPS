@@ -34,10 +34,21 @@ document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
 
   /* ---------- Sidebar (desktop) ---------- */
   #sidebar {
-    width: 380px; height: 100vh; height: 100dvh; flex: 0 0 380px;
+    width: var(--sidebar-width, 380px); height: 100vh; height: 100dvh; flex: 0 0 var(--sidebar-width, 380px);
+    min-width: 280px; max-width: 72vw;
     background: var(--bg); display: flex; flex-direction: column;
     box-shadow: 2px 0 12px rgba(0,0,0,.3); z-index: 1000;
   }
+  #sidebarResizer {
+    position: relative; flex: 0 0 8px; width: 8px; z-index: 1200; cursor: col-resize;
+    background: transparent; touch-action: none; user-select: none;
+  }
+  #sidebarResizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background .15s; }
+  #sidebarResizer::after { content: "↔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 22px; height: 42px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-2); font-size: 14px; opacity: 0; box-shadow: 0 1px 4px rgba(0,0,0,.12); transition: opacity .15s; }
+  #sidebarResizer:hover::before, #sidebarResizer.dragging::before { background: var(--primary); }
+  #sidebarResizer:hover::after, #sidebarResizer.dragging::after { opacity: 1; }
+  body.resizing-sidebar { cursor: col-resize !important; user-select: none !important; }
+  body.resizing-sidebar * { cursor: col-resize !important; user-select: none !important; }
   .sheet-handle { display: none; }
   .sheet-header {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -174,8 +185,9 @@ document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
   @media (max-width: 768px) {
     .app { display: block; position: relative; }
     #map { position: absolute; inset: 0; width: 100%; height: 100vh; height: 100dvh; z-index: 1; }
+    #sidebarResizer { display: none; }
     #sidebar {
-      position: fixed; left: 0; right: 0; bottom: 0; width: 100%; flex: none;
+      position: fixed; left: 0; right: 0; bottom: 0; width: 100%; max-width: none; min-width: 0; flex: none;
       height: var(--sheet-expanded); border-radius: 20px 20px 0 0;
       box-shadow: 0 -4px 18px rgba(0,0,0,.3); transition: height .5s cubic-bezier(.32,.72,0,1); overflow: hidden;
       padding-bottom: env(safe-area-inset-bottom);
@@ -297,6 +309,33 @@ document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
   html[data-theme="dark"] .field input::placeholder { color: var(--text-2); }
   html[data-theme="dark"] #map { filter: brightness(.82) contrast(1.05); }
   html[data-theme="dark"] .leaflet-control-container, html[data-theme="dark"] .leaflet-popup-pane, html[data-theme="dark"] .leaflet-tooltip-pane { filter: brightness(1.22); }
+
+  /* ---------- Позначки країн / міст / важливих місць ---------- */
+  .map-label-wrap { overflow: visible; }
+  .map-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); white-space: nowrap; cursor: pointer; user-select: none; -webkit-user-select: none; animation: fadeIn .35s both; }
+  .lbl-country { font-size: 24px; font-weight: 800; letter-spacing: 5px; text-transform: uppercase; color: #fff; text-shadow: 0 0 3px #000, 0 0 8px #000, 0 2px 12px rgba(0,0,0,.8); }
+  .lbl-city { font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 0 3px #000, 0 0 6px #000; }
+  .special-pin { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; display: grid; place-items: center; font-size: 15px; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,.55); cursor: pointer; animation: dotPop .4s var(--ease-spring) both; }
+  .color-row { display: flex; gap: 8px; align-items: center; }
+  .color-row input[type="color"] { flex: none; width: 46px; height: 40px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; }
+  /* Покращення UX зони розробника */
+  #devTools { padding-top: 8px; }
+  #devTools > .tool-checkbox { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+  .dev-zone .tool-toggle { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px; font-size:14px; font-weight:650; border-radius:12px; }
+  .dev-zone .tool-toggle::after { content:"＋"; color:var(--text-2); font-size:18px; }
+  .dev-zone .tool-toggle.mode-active::after { content:"−"; }
+  .dev-zone .tool-panel { padding:14px; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+  .dev-zone .tool-panel h2 { margin:16px 0 8px; font-size:14px; letter-spacing:.1px; }
+  .dev-zone .tool-panel h2:first-child { margin-top:0; }
+  .dev-zone .tool-help { line-height:1.55; }
+  .dev-zone .secondary-btn { min-height:42px; padding:10px 12px; line-height:1.35; }
+  .dev-zone .tool-panel input:focus, .dev-zone .tool-panel select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(26,115,232,.15); }
+  .dev-zone .tool-panel hr { margin:16px 0; }
+  .label-size-card { margin-top:12px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
+  .label-size-card .size-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .label-size-card .size-value { color:var(--primary-dark); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .label-size-card input[type="range"] { width:100%; accent-color:var(--primary); }
+  .label-size-card .size-preview { margin-top:8px; color:var(--text-2); font-size:12px; }
 </style>
 </head>
 <body>
@@ -385,6 +424,11 @@ document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
             <p class="tool-help">Спочатку відкалібруй карту. Позначай точки на кожному перехресті, кінцях дороги та її поворотах; з'єднуй сусідні точки дорогами. Дані автоматично зберігаються в цьому браузері. Щоб карта працювала в усіх, експортуй JSON і поклади його поруч з index.html під назвою <b>data.json</b>.</p>
             <div class="field"><label class="lbl" for="newNodeNameInput">Назва нової точки</label><input id="newNodeNameInput" type="text" placeholder="Напр. Перехрестя біля порту" maxlength="80"></div>
             <label class="tool-checkbox"><input type="checkbox" id="newNodeSmallInput"> Дрібна / службова точка (не показувати маркер на карті)</label>
+            <label class="tool-checkbox"><input type="checkbox" id="newNodeSpecialInput"> ⭐ Важливе місце (особливий вигляд на карті)</label>
+            <div class="tool-grid">
+              <div class="field"><label class="lbl" for="specialColorInput">Колір (HEX)</label><div class="color-row"><input id="specialColorInput" type="text" value="#e8710a" maxlength="7" placeholder="#e8710a" autocomplete="off" spellcheck="false"><input id="specialColorPicker" type="color" value="#e8710a" aria-label="Вибрати колір"></div></div>
+              <div class="field"><label class="lbl" for="specialIconInput">Символ / смайлик</label><input id="specialIconInput" type="text" value="⭐" maxlength="8" placeholder="⭐" autocomplete="off"></div>
+            </div>
             <button class="secondary-btn" id="addNodeModeBtn" type="button">Додати точку: клацни на карті</button>
             <div class="tool-status" id="editorStatus" aria-live="polite">Редактор готовий.</div>
             <hr>
@@ -401,6 +445,30 @@ document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
             <div class="field" style="margin-top:12px"><label class="lbl" for="deleteNodeSel">Точка для видалення</label><select id="deleteNodeSel"></select></div>
             <button class="secondary-btn tool-danger" id="deleteNodeBtn" type="button">Видалити точку та її дороги</button>
             <hr>
+            <h2>Важливі місця</h2>
+            <p class="tool-help">Важливе місце — звичайна точка (пошук, маршрути, «Звідси / Сюди»), але з власним кольором і символом. Колір і символ беруться з полів вище.</p>
+            <div class="field"><label class="lbl" for="specialNodeSel">Точка</label><select id="specialNodeSel"></select></div>
+            <button class="secondary-btn" id="applySpecialBtn" type="button">Зробити важливою / застосувати колір і символ</button>
+            <button class="secondary-btn" id="makeNormalBtn" type="button">Зробити звичайною точкою</button>
+            <hr>
+            <h2>Позначки країн і міст</h2>
+            <p class="tool-help">Країни видно на найменшому масштабі (коли точки ще сховані), міста — трохи ближче. Клік по позначці наближає карту до наступного рівня.</p>
+            <div class="field"><label class="lbl" for="newLabelNameInput">Назва позначки</label><input id="newLabelNameInput" type="text" placeholder="Напр. Popsikosland" maxlength="80"></div>
+            <div class="field"><label class="lbl" for="newLabelKindSel">Тип позначки</label><select id="newLabelKindSel"><option value="country">🏳️ Країна</option><option value="city">🏙️ Місто</option></select></div>
+            <button class="secondary-btn" id="addLabelModeBtn" type="button">Додати позначку: клацни на карті</button>
+            <div class="field" style="margin-top:12px"><label class="lbl" for="labelNodeSel">Створити позначку з існуючої точки</label><select id="labelNodeSel"></select></div>
+            <button class="secondary-btn" id="labelFromNodeBtn" type="button">Створити позначку з вибраної точки</button>
+            <label class="tool-checkbox"><input type="checkbox" id="showAllLabelsInput"> Показувати всі позначки незалежно від масштабу</label>
+            <div class="field" style="margin-top:8px"><label class="lbl" for="deleteLabelSel">Існуюча позначка</label><select id="deleteLabelSel"></select></div>
+            <div class="label-size-card">
+              <div class="size-head"><label class="lbl" for="labelFontSizeInput">Розмір напису вибраної позначки</label><span class="size-value" id="labelFontSizeValue">24 px</span></div>
+              <input id="labelFontSizeInput" type="range" min="8" max="64" step="1" value="24" aria-label="Розмір напису вибраної позначки">
+              <div class="size-preview" id="labelFontSizeHelp">Вибери позначку вище, щоб налаштувати її розмір окремо. За замовчуванням: країна — 24 px, місто — 16 px.</div>
+              <button class="secondary-btn" id="resetLabelFontSizeBtn" type="button">Повернути стандартний розмір</button>
+            </div>
+            <button class="secondary-btn tool-danger" id="deleteLabelBtn" type="button">Видалити вибрану позначку</button>
+            <button class="secondary-btn tool-danger" id="clearLabelsBtn" type="button">Очистити всі позначки</button>
+            <hr>
             <button class="secondary-btn tool-danger" id="clearNetworkBtn" type="button">Очистити всі приклади точок і доріг</button>
             <button class="secondary-btn" id="exportDataBtn" type="button">Експортувати дані в JSON</button>
             <label class="secondary-btn" for="importDataInput" style="display:block;text-align:center">Імпортувати JSON</label>
@@ -410,6 +478,7 @@ document.documentElement.setAttribute("data-theme",dark?"dark":"light");})();
       </div>
     </div>
   </aside>
+  <div id="sidebarResizer" role="separator" aria-orientation="vertical" aria-label="Змінити ширину бічної панелі" tabindex="0" title="Перетягни, щоб змінити ширину панелі"></div>
   <div id="map"></div>
 </div>
 
@@ -447,7 +516,7 @@ const DEFAULT_NODES = {
   spawn:   { name: "Спавн",        x: 31,   z: 240  },
   cross1:  { name: "Перехрестя_1", x: 191,  z: 240  },
   city:    { name: "Місто",        x: -39,  z: -60  },
-  mill:    { name: "Старий млин",  x: 191,  z: 20   },
+  mill:    { name: "Старий млин",  x: 191,  z: 20, special: true, color: "#e8710a", icon: "⚙️" },
   village: { name: "Село",         x: -304, z: 450  },
   harbor:  { name: "Порт",         x: -424, z: -470 }
 };
@@ -467,6 +536,34 @@ const DEFAULT_CALIBRATION = {
   scaleZ: 1, offsetZ: -MAP_IMAGE_HEIGHT / 2
 };
 
+const DEFAULT_SPECIAL_COLOR = "#e8710a", DEFAULT_SPECIAL_ICON = "⭐";
+function normHex(v) {
+  const t = String(v == null ? "" : v).trim().replace(/^#/, "");
+  if (/^[0-9a-f]{3}$/i.test(t)) return "#" + t.split("").map(c => c + c).join("").toLowerCase();
+  if (/^[0-9a-f]{6}$/i.test(t)) return "#" + t.toLowerCase();
+  return null;
+}
+function firstSymbol(v) {
+  const t = String(v == null ? "" : v).trim();
+  if (!t) return DEFAULT_SPECIAL_ICON;
+  if (typeof Intl !== "undefined" && Intl.Segmenter) { for (const seg of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(t)) return seg.segment; }
+  return Array.from(t)[0];
+}
+const LABEL_KINDS = {
+  country:   { name: "Країна",        icon: "🏳️", z: 300, focus: -0.25 },
+  city:      { name: "Місто",         icon: "🏙️", z: 200, focus: 1.0 }
+};
+// Діапазони масштабу [від, до): країни — коли точки сховані, міста — трохи ближче
+const LABEL_ZOOM = { country: [-Infinity, -0.5], city: [-0.5, 0.75] };
+const MAX_VISIBLE_LABELS = 150;
+const validLabel = l => l && typeof l.name === "string" && Number.isFinite(Number(l.x)) && Number.isFinite(Number(l.z)) && Object.prototype.hasOwnProperty.call(LABEL_KINDS, l.kind);
+const DEFAULT_LABELS = [
+  { name: "Popsikosland", kind: "country",   x: -100, z: 0 },
+  { name: "Місто",        kind: "city",      x: -39,  z: -60 },
+  { name: "Село",         kind: "city",      x: -304, z: 450 },
+  { name: "Порт",         kind: "city",      x: -424, z: -470 }
+];
+
 const VEHICLES = {
   A: { label: "Варіант A – Легковий транспорт", chip: "🚗 Легковий", short: "легковий транспорт", allowed: ["all", "A_only"] },
   B: { label: "Варіант B – Вантажівка", chip: "🚚 Вантажівка", short: "вантажівка", allowed: ["all", "B_only"] }
@@ -480,12 +577,14 @@ const MAX_VISIBLE_NODES = 400;
 const MAX_VISIBLE_ARROWS = 200;
 const MAX_PERMANENT_LABELS = 60;
 const MAX_VISIBLE_SMALL = 1500;
-let showSmallNodes = false;   // лише для режиму розробника
+let showSmallNodes = false;
+let showAllLabels = false;   // лише для режиму розробника   // лише для режиму розробника
 
 let NODES = JSON.parse(JSON.stringify(DEFAULT_NODES));
 let ROADS = JSON.parse(JSON.stringify(DEFAULT_ROADS));
 let calibration = { ...DEFAULT_CALIBRATION };
 let calibrationPoints = [];
+let LABELS = JSON.parse(JSON.stringify(DEFAULT_LABELS));
 let hasLocalSave = false;
 const validCalibration = c => c && [c.scaleX, c.offsetX, c.scaleZ, c.offsetZ].every(Number.isFinite) && c.scaleX > 0 && c.scaleZ > 0;
 try {
@@ -496,6 +595,7 @@ try {
       NODES = saved.nodes; ROADS = saved.roads; hasLocalSave = true;
     }
     if (saved && validCalibration(saved.calibration)) calibration = { ...saved.calibration };
+    if (saved && Array.isArray(saved.labels)) LABELS = saved.labels.filter(validLabel).map(l => ({ name: l.name, kind: l.kind, x: Number(l.x), z: Number(l.z), ...(Number.isFinite(Number(l.fontSize)) && Number(l.fontSize) >= 8 && Number(l.fontSize) <= 64 ? { fontSize: Number(l.fontSize) } : {}) }));
     if (saved && Array.isArray(saved.calibrationPoints)) calibrationPoints = saved.calibrationPoints.filter(p => p && [p.px, p.py, p.x, p.z].every(Number.isFinite));
   }
 } catch (error) { console.warn("Could not load saved map data", error); }
@@ -788,7 +888,7 @@ function saveAppData() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, nodes: NODES, roads: ROADS, calibration, calibrationPoints }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, nodes: NODES, roads: ROADS, calibration, calibrationPoints, labels: LABELS }));
       hasLocalSave = true;
     } catch (error) { console.warn("Could not save map data in this browser", error); }
   }, 300);
@@ -817,7 +917,7 @@ function openNodePopup(id) {
   const node = NODES[id];
   if (!node) return;
   const popup = document.createElement("div");
-  const title = document.createElement("strong"); title.textContent = node.name;
+  const title = document.createElement("strong"); title.textContent = (node.special ? firstSymbol(node.icon) + " " : "") + node.name;
   const coords = document.createElement("div"); coords.textContent = `X: ${node.x}, Z: ${node.z}`;
   const buttons = document.createElement("div"); buttons.className = "popup-btns";
   const fromBtn = document.createElement("button"); fromBtn.type = "button"; fromBtn.textContent = "Звідси";
@@ -839,28 +939,44 @@ function renderView() {
   viewLayer.clearLayers();
   const z = map.getZoom();
   const bounds = map.getBounds().pad(0.5);
+  // Розділяємо режими, щоб написи міст не накладалися на звичайні,
+  // важливі та службові точки. У режимі міст точки приховані; поза ним
+  // назви міст не малюються, а точки повертаються за звичайними правилами.
+  const cityLabelMode = z >= LABEL_ZOOM.city[0] && z < LABEL_ZOOM.city[1];
   const visible = [], visibleSmall = [];
   let overflow = false;
   for (const id in NODES) {
     const node = NODES[id];
     if (node.small) {
-      if (!showSmallNodes || !devUnlocked || visibleSmall.length > MAX_VISIBLE_SMALL) continue;
+      if (cityLabelMode || !showSmallNodes || !devUnlocked || visibleSmall.length > MAX_VISIBLE_SMALL) continue;
       if (bounds.contains(nodeLL(id))) visibleSmall.push(id);
       continue;
     }
+    if (cityLabelMode) continue;
     if (visible.length > MAX_VISIBLE_NODES) continue;
     if (bounds.contains(nodeLL(id))) visible.push(id);
   }
-  const showNodes = visible.length <= MAX_VISIBLE_NODES && (z >= 0 || visible.length <= 40);
+  const showNodes = !cityLabelMode && visible.length <= MAX_VISIBLE_NODES && (z >= 0 || visible.length <= 40);
   if (showNodes) {
     const permanent = z >= 1 || visible.length <= 12 ? visible.length <= MAX_PERMANENT_LABELS : false;
     visible.forEach(id => {
-      const marker = L.circleMarker(nodeLL(id), { radius: 7, color: "#fff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1 }).addTo(viewLayer);
-      marker.bindTooltip(NODES[id].name, { permanent, direction: "top", offset: [0, -8], className: "node-label" });
+      const node = NODES[id];
+      let marker;
+      if (node.special) {
+        const el = document.createElement("div");
+        el.className = "special-pin";
+        el.style.background = normHex(node.color) || DEFAULT_SPECIAL_COLOR;
+        el.textContent = firstSymbol(node.icon);
+        marker = L.marker(nodeLL(id), { keyboard: false, zIndexOffset: 500, icon: L.divIcon({ className: "", html: el, iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(viewLayer);
+        marker.bindTooltip(node.name, { permanent, direction: "top", offset: [0, -16], className: "node-label" });
+      } else {
+        marker = L.circleMarker(nodeLL(id), { radius: 7, color: "#fff", weight: 2, fillColor: "#1a73e8", fillOpacity: 1 }).addTo(viewLayer);
+        marker.bindTooltip(node.name, { permanent, direction: "top", offset: [0, -8], className: "node-label" });
+      }
       marker.on("click", () => openNodePopup(id));
     });
   }
-  if (showSmallNodes && devUnlocked) {
+  if (showSmallNodes && devUnlocked && !cityLabelMode) {
     if (visibleSmall.length > MAX_VISIBLE_SMALL) {
       overflow = true;
     } else {
@@ -887,7 +1003,43 @@ function renderView() {
       if (++shown >= MAX_VISIBLE_ARROWS) break;
     }
   }
+  renderLabels(bounds, z);
   if (routeLine) routeLine.bringToFront();
+}
+function labelVisible(l, z) {
+  // У режимі міст приховуємо маркери точок, а поза ним — написи міст.
+  // Прапорець показу всіх написів для розробника лишається доступним,
+  // але не ламає взаємне перемикання міст і точок.
+  if (l.kind === "city") return z >= LABEL_ZOOM.city[0] && z < LABEL_ZOOM.city[1];
+  if (showAllLabels && devUnlocked) return true;
+  const r = LABEL_ZOOM[l.kind];
+  return z >= r[0] && z < r[1];
+}
+function focusLabel(l) {
+  if (selectingCalibrationPoint || editorAddNodeMode || editorAddLabelMode) return;
+  map.setView(toLatLng(l.x, l.z), LABEL_KINDS[l.kind].focus, { animate: !reduceMotion });
+}
+function renderLabels(bounds, z) {
+  let shown = 0;
+  for (const l of LABELS) {
+    if (shown >= MAX_VISIBLE_LABELS) break;
+    if (!labelVisible(l, z)) continue;
+    const ll = toLatLng(l.x, l.z);
+    if (!bounds.contains(ll)) continue;
+    const el = document.createElement("div");
+    el.className = "map-label lbl-" + l.kind;
+    el.textContent = l.name;
+    // Custom font size is stored per label; inline style overrides the kind default.
+    const labelFontSize = Number.isFinite(Number(l.fontSize)) && Number(l.fontSize) >= 8 && Number(l.fontSize) <= 64
+      ? Number(l.fontSize) : (l.kind === "country" ? 24 : 16);
+    el.style.fontSize = `${labelFontSize}px`;
+    if (l.kind === "country") el.style.letterSpacing = `${Math.max(1, labelFontSize * 5 / 24)}px`;
+    L.marker(ll, {
+      keyboard: false, zIndexOffset: LABEL_KINDS[l.kind].z,
+      icon: L.divIcon({ className: "map-label-wrap", html: el, iconSize: [0, 0] })
+    }).on("click", () => focusLabel(l)).addTo(viewLayer);
+    shown++;
+  }
 }
 let viewTimer = null;
 const scheduleView = () => { clearTimeout(viewTimer); viewTimer = setTimeout(renderView, 60); };
@@ -1108,7 +1260,7 @@ function clearPinDestination() {
 }
 
 map.on("contextmenu", event => {
-  if (selectingCalibrationPoint || editorAddNodeMode) return;
+  if (selectingCalibrationPoint || editorAddNodeMode || editorAddLabelMode) return;
   if (Date.now() - lastPinActionAt < 800) return;
   setPinDestination(event.latlng);
 });
@@ -1117,7 +1269,7 @@ map.on("contextmenu", event => {
 const mapContainer = map.getContainer();
 let touchPress = null, longPressTimer = null;
 mapContainer.addEventListener("touchstart", event => {
-  if (selectingCalibrationPoint || editorAddNodeMode) { clearTimeout(longPressTimer); touchPress = null; return; }
+  if (selectingCalibrationPoint || editorAddNodeMode || editorAddLabelMode) { clearTimeout(longPressTimer); touchPress = null; return; }
   if (event.touches.length !== 1 || event.target.closest(".leaflet-control, .leaflet-popup, button, a, input, select")) return;
   const touch = event.touches[0];
   const rect = mapContainer.getBoundingClientRect();
@@ -1293,6 +1445,49 @@ function onLayoutChange() {
 }
 mobileQuery.addEventListener("change", onLayoutChange);
 window.addEventListener("resize", () => map.invalidateSize());
+
+// Desktop split-pane resizing, similar to a browser side-by-side layout.
+(() => {
+  const handle = document.getElementById("sidebarResizer");
+  const sidebar = document.getElementById("sidebar");
+  if (!handle || !sidebar) return;
+  let startX = 0, startWidth = 0, dragging = false;
+  const desktop = () => window.matchMedia("(min-width: 769px)").matches;
+  const setWidth = width => {
+    const min = 280;
+    const max = Math.max(min, Math.min(window.innerWidth * 0.72, window.innerWidth - 220));
+    const next = Math.round(Math.max(min, Math.min(max, width)));
+    document.documentElement.style.setProperty("--sidebar-width", `${next}px`);
+    handle.setAttribute("aria-valuenow", String(next));
+    map.invalidateSize({ pan: false });
+  };
+  handle.addEventListener("pointerdown", event => {
+    if (!desktop() || event.button !== 0) return;
+    dragging = true; startX = event.clientX; startWidth = sidebar.getBoundingClientRect().width;
+    handle.classList.add("dragging"); document.body.classList.add("resizing-sidebar");
+    handle.setPointerCapture?.(event.pointerId); event.preventDefault();
+  });
+  handle.addEventListener("pointermove", event => {
+    if (!dragging) return;
+    setWidth(startWidth + event.clientX - startX);
+  });
+  const stop = () => {
+    if (!dragging) return;
+    dragging = false; handle.classList.remove("dragging"); document.body.classList.remove("resizing-sidebar");
+    map.invalidateSize();
+  };
+  handle.addEventListener("pointerup", stop);
+  handle.addEventListener("pointercancel", stop);
+  handle.addEventListener("lostpointercapture", stop);
+  handle.addEventListener("keydown", event => {
+    if (!desktop() || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = sidebar.getBoundingClientRect().width;
+    if (event.key === "Home") setWidth(280);
+    else if (event.key === "End") setWidth(window.innerWidth * 0.72);
+    else setWidth(current + (event.key === "ArrowRight" ? 20 : -20));
+  });
+})();
 document.addEventListener("click", e => {
   // тап по карті ховає підказки
   if (!e.target.closest(".field")) { fromList.hidden = true; toList.hidden = true; }
@@ -1306,12 +1501,12 @@ const devModal = $("devModal"), devForm = $("devForm"), devCodeInput = $("devCod
 const devTools = $("devTools"), devOpenBtn = $("devOpenBtn");
 const calibrationPanel = $("calibrationPanel"), editorPanel = $("editorPanel");
 const toggleCalibrationBtn = $("toggleCalibrationBtn"), toggleEditorBtn = $("toggleEditorBtn");
-const selectCalibrationPixelBtn = $("selectCalibrationPixelBtn"), addNodeModeBtn = $("addNodeModeBtn");
+const selectCalibrationPixelBtn = $("selectCalibrationPixelBtn"), addNodeModeBtn = $("addNodeModeBtn"), addLabelModeBtn = $("addLabelModeBtn");
 const calibrationXInput = $("calibrationXInput"), calibrationZInput = $("calibrationZInput");
 const calibrationStatus = $("calibrationStatus"), editorStatus = $("editorStatus");
 const newNodeNameInput = $("newNodeNameInput"), newNodeSmallInput = $("newNodeSmallInput");
 const roadFromSel = $("roadFromSel"), roadToSel = $("roadToSel"), deleteRoadSel = $("deleteRoadSel"), deleteNodeSel = $("deleteNodeSel");
-let selectingCalibrationPoint = false, pendingCalibrationPixel = null, editorAddNodeMode = false;
+let selectingCalibrationPoint = false, pendingCalibrationPixel = null, editorAddNodeMode = false, editorAddLabelMode = false;
 let failedAttempts = 0;
 const requireDev = () => devUnlocked;
 
@@ -1350,7 +1545,8 @@ devForm.addEventListener("submit", e => { e.preventDefault(); tryDevLogin(); });
 $("devSubmitBtn").addEventListener("click", e => { e.preventDefault(); tryDevLogin(); });
 
 function resetToolModes() {
-  selectingCalibrationPoint = false; editorAddNodeMode = false;
+  selectingCalibrationPoint = false; editorAddNodeMode = false; editorAddLabelMode = false;
+  addLabelModeBtn.classList.remove("mode-active");
   selectCalibrationPixelBtn.classList.remove("mode-active");
   addNodeModeBtn.classList.remove("mode-active");
   map.getContainer().style.cursor = "";
@@ -1361,6 +1557,7 @@ function setDevMode(on) {
   devOpenBtn.hidden = on;
   if (!on) {
     showSmallNodes = false; showSmallInput.checked = false; smallStatus.textContent = "";
+    showAllLabels = false; $("showAllLabelsInput").checked = false;
     calibrationPanel.hidden = true; editorPanel.hidden = true;
     toggleCalibrationBtn.classList.remove("mode-active"); toggleEditorBtn.classList.remove("mode-active");
     resetToolModes();
@@ -1404,6 +1601,10 @@ function refreshEditorSelects() {
   fill(roadFromSel, nodeEntries, roadFromSel.value);
   fill(roadToSel, nodeEntries, roadToSel.value);
   fill(deleteNodeSel, nodeEntries, deleteNodeSel.value);
+  fill($("labelNodeSel"), nodeEntries, $("labelNodeSel").value);
+  fill($("specialNodeSel"), Object.entries(NODES).map(([id, n]) => [`${n.special ? firstSymbol(n.icon) + " " : ""}${n.name} (X: ${n.x}, Z: ${n.z})`, id]), $("specialNodeSel").value);
+  fill($("deleteLabelSel"), LABELS.map((l, i) => [`${LABEL_KINDS[l.kind].icon} ${l.name} (X: ${l.x}, Z: ${l.z})`, String(i)]), $("deleteLabelSel").value);
+  syncLabelFontSizeControl();
   const oldRoad = deleteRoadSel.value;
   fill(deleteRoadSel, ROADS.map((road, index) => {
     const dir = road.oneWay ? " →" : " ↔";
@@ -1468,6 +1669,19 @@ map.on("click", event => {
     calibrationStatus.textContent = `Місце вибрано: піксель X ${px.toFixed(1)}, Y ${py.toFixed(1)}. Введи його координати Minecraft нижче.`;
     return;
   }
+  if (editorAddLabelMode) {
+    if (!pixelIsOnMap(px, py)) { editorStatus.textContent = "Став позначку всередині зображення карти."; return; }
+    const kind = $("newLabelKindSel").value;
+    const world = mapToWorld(event.latlng);
+    const x = Math.round(world.x), z = Math.round(world.z);
+    const name = $("newLabelNameInput").value.trim() || LABEL_KINDS[kind].name;
+    LABELS.push({ name, kind, x, z });
+    resetToolModes();
+    $("newLabelNameInput").value = "";
+    afterLabelsChanged();
+    editorStatus.textContent = `Додано позначку «${name}» (${LABEL_KINDS[kind].name.toLowerCase()}): X ${x}, Z ${z}.`;
+    return;
+  }
   if (editorAddNodeMode) {
     if (!pixelIsOnMap(px, py)) { editorStatus.textContent = "Позначай точки всередині зображення карти."; return; }
     const world = mapToWorld(event.latlng);
@@ -1475,10 +1689,13 @@ map.on("click", event => {
     const name = newNodeNameInput.value.trim() || `Точка ${Object.keys(NODES).length + 1}`;
     let index = 1;
     while (NODES[`point_${index}`]) index++;
-    NODES[`point_${index}`] = { name, x, z, ...(newNodeSmallInput.checked ? { small: true } : {}) };
+    const wantSpecial = $("newNodeSpecialInput").checked && !newNodeSmallInput.checked;
+    const special = wantSpecial ? readSpecialProps() : null;
+    if (wantSpecial && !special) return;
+    NODES[`point_${index}`] = { name, x, z, ...(newNodeSmallInput.checked ? { small: true } : {}), ...(special || {}) };
     clearRoute();
     resetToolModes();
-    newNodeNameInput.value = ""; newNodeSmallInput.checked = false;
+    newNodeNameInput.value = ""; newNodeSmallInput.checked = false; $("newNodeSpecialInput").checked = false;
     renderMapData(); saveAppData();
     editorStatus.textContent = `Додано «${name}»: X ${x}, Z ${z}. Тепер з'єднай точку з сусідніми дорогами.`;
   }
@@ -1576,7 +1793,7 @@ $("clearNetworkBtn").addEventListener("click", () => {
 
 $("exportDataBtn").addEventListener("click", () => {
   if (!requireDev()) return;
-  const data = { version: 2, image: { width: MAP_IMAGE_WIDTH, height: MAP_IMAGE_HEIGHT }, nodes: NODES, roads: ROADS, calibration, calibrationPoints };
+  const data = { version: 2, image: { width: MAP_IMAGE_WIDTH, height: MAP_IMAGE_HEIGHT }, nodes: NODES, roads: ROADS, calibration, calibrationPoints, labels: LABELS };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -1593,7 +1810,7 @@ function parseNetworkData(data) {
   const nodes = {};
   for (const [id, node] of Object.entries(data.nodes)) {
     if (!node || typeof node.name !== "string" || !Number.isFinite(Number(node.x)) || !Number.isFinite(Number(node.z))) throw new Error(`Некоректна точка: ${id}`);
-    nodes[id] = { name: node.name, x: Number(node.x), z: Number(node.z), ...(node.small === true ? { small: true } : {}) };
+    nodes[id] = { name: node.name, x: Number(node.x), z: Number(node.z), ...(node.small === true ? { small: true } : node.special === true ? { special: true, color: normHex(node.color) || DEFAULT_SPECIAL_COLOR, icon: firstSymbol(node.icon) } : {}) };
   }
   const roads = data.roads.map((road, index) => {
     if (!road || !nodes[road.from] || !nodes[road.to] || !ANY_ROAD.includes(road.type)) throw new Error(`Некоректна дорога №${index + 1}`);
@@ -1612,7 +1829,8 @@ function parseNetworkData(data) {
     const c = data.calibration; cal = { scaleX: c.scaleX, offsetX: c.offsetX, scaleZ: c.scaleZ, offsetZ: c.offsetZ };
   }
   const points = Array.isArray(data.calibrationPoints) ? data.calibrationPoints.filter(p => p && [p.px, p.py, p.x, p.z].every(Number.isFinite)) : [];
-  return { nodes, roads, calibration: cal, calibrationPoints: points };
+  const labels = Array.isArray(data.labels) ? data.labels.filter(validLabel).map(l => ({ name: l.name, kind: l.kind, x: Number(l.x), z: Number(l.z), ...(Number.isFinite(Number(l.fontSize)) && Number(l.fontSize) >= 8 && Number(l.fontSize) <= 64 ? { fontSize: Number(l.fontSize) } : {}) })) : null;
+  return { nodes, roads, calibration: cal, calibrationPoints: points, labels };
 }
 
 $("importDataInput").addEventListener("change", async event => {
@@ -1623,13 +1841,123 @@ $("importDataInput").addEventListener("change", async event => {
     if (!confirm("Замінити поточні точки, дороги й калібрування даними з цього JSON?")) { event.target.value = ""; return; }
     if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
     pinDestination = null; fromId = null; toId = null; fromSearch.value = ""; toSearch.value = "";
-    NODES = parsed.nodes; ROADS = parsed.roads; calibration = parsed.calibration; calibrationPoints = parsed.calibrationPoints;
+    NODES = parsed.nodes; ROADS = parsed.roads; calibration = parsed.calibration; calibrationPoints = parsed.calibrationPoints; LABELS = parsed.labels || [];
     clearRoute(); renderMapData(); saveAppData();
     editorStatus.textContent = `Імпортовано ${Object.keys(NODES).length} точок і ${ROADS.length} доріг.`;
     calibrationStatus.textContent = `З JSON завантажено ${calibrationPoints.length} точок прив'язки.`;
   } catch (error) {
     editorStatus.textContent = `Не вдалося імпортувати JSON: ${error.message}`;
   } finally { event.target.value = ""; }
+});
+
+function readSpecialProps() {
+  const color = normHex($("specialColorInput").value);
+  if (!color) { editorStatus.textContent = "Колір має бути у форматі HEX, напр. #e8710a."; return null; }
+  return { special: true, color, icon: firstSymbol($("specialIconInput").value) };
+}
+$("specialColorInput").addEventListener("input", () => {
+  const c = normHex($("specialColorInput").value);
+  if (c) $("specialColorPicker").value = c;
+});
+$("specialColorPicker").addEventListener("input", () => { $("specialColorInput").value = $("specialColorPicker").value; });
+$("specialNodeSel").addEventListener("change", () => {
+  const n = NODES[$("specialNodeSel").value];
+  if (!n || !n.special) return;
+  $("specialColorInput").value = normHex(n.color) || DEFAULT_SPECIAL_COLOR;
+  $("specialColorPicker").value = $("specialColorInput").value;
+  $("specialIconInput").value = firstSymbol(n.icon);
+});
+$("applySpecialBtn").addEventListener("click", () => {
+  if (!requireDev()) return;
+  const id = $("specialNodeSel").value, node = NODES[id];
+  if (!node) { editorStatus.textContent = "Спочатку додай точку."; return; }
+  const props = readSpecialProps();
+  if (!props) return;
+  delete node.small;
+  Object.assign(node, props);
+  renderMapData(); saveAppData();
+  editorStatus.textContent = `«${node.name}» тепер важливе місце: ${props.icon} ${props.color}.`;
+});
+$("makeNormalBtn").addEventListener("click", () => {
+  if (!requireDev()) return;
+  const node = NODES[$("specialNodeSel").value];
+  if (!node) { editorStatus.textContent = "Спочатку додай точку."; return; }
+  delete node.special; delete node.color; delete node.icon;
+  renderMapData(); saveAppData();
+  editorStatus.textContent = `«${node.name}» знову звичайна точка.`;
+});
+function afterLabelsChanged() {
+  editorDirty = true; refreshEditorSelects(); renderView(); saveAppData();
+}
+function syncLabelFontSizeControl() {
+  const index = Number($("deleteLabelSel").value);
+  const label = Number.isInteger(index) ? LABELS[index] : null;
+  const input = $("labelFontSizeInput");
+  const defaultSize = label ? (label.kind === "country" ? 24 : 16) : 24;
+  const size = label && Number.isFinite(Number(label.fontSize)) ? Number(label.fontSize) : defaultSize;
+  input.value = String(size);
+  input.disabled = !label;
+  $("resetLabelFontSizeBtn").disabled = !label || !Number.isFinite(Number(label.fontSize));
+  $("labelFontSizeValue").textContent = `${size} px`;
+  $("labelFontSizeHelp").textContent = label
+    ? `«${label.name}» · ${LABEL_KINDS[label.kind].name.toLowerCase()}. Зміни застосовуються одразу й автоматично зберігаються.`
+    : "Спочатку створи або вибери позначку в полі «Існуюча позначка».";
+}
+$("deleteLabelSel").addEventListener("change", syncLabelFontSizeControl);
+$("labelFontSizeInput").addEventListener("input", () => {
+  if (!requireDev()) return;
+  const index = Number($("deleteLabelSel").value), label = LABELS[index];
+  if (!label) return;
+  label.fontSize = Number($("labelFontSizeInput").value);
+  $("labelFontSizeValue").textContent = `${label.fontSize} px`;
+  $("resetLabelFontSizeBtn").disabled = false;
+  renderView(); saveAppData();
+});
+$("resetLabelFontSizeBtn").addEventListener("click", () => {
+  if (!requireDev()) return;
+  const label = LABELS[Number($("deleteLabelSel").value)];
+  if (!label) return;
+  delete label.fontSize;
+  syncLabelFontSizeControl(); renderView(); saveAppData();
+});
+addLabelModeBtn.addEventListener("click", () => {
+  if (!requireDev()) return;
+  resetToolModes();
+  editorAddLabelMode = true;
+  map.getContainer().style.cursor = "crosshair";
+  addLabelModeBtn.classList.add("mode-active");
+  editorStatus.textContent = "Клацни на карті, де має стояти позначка. Назву й тип задай заздалегідь.";
+});
+$("labelFromNodeBtn").addEventListener("click", () => {
+  if (!requireDev()) return;
+  const node = NODES[$("labelNodeSel").value];
+  if (!node) { editorStatus.textContent = "Спочатку додай хоча б одну точку."; return; }
+  const kind = $("newLabelKindSel").value;
+  const name = $("newLabelNameInput").value.trim() || node.name;
+  LABELS.push({ name, kind, x: node.x, z: node.z });
+  $("newLabelNameInput").value = "";
+  afterLabelsChanged();
+  editorStatus.textContent = `Створено позначку «${name}» (${LABEL_KINDS[kind].name.toLowerCase()}) на місці точки «${node.name}».`;
+});
+$("showAllLabelsInput").addEventListener("change", () => {
+  if (!requireDev()) { $("showAllLabelsInput").checked = false; return; }
+  showAllLabels = $("showAllLabelsInput").checked;
+  renderView();
+});
+$("deleteLabelBtn").addEventListener("click", () => {
+  if (!requireDev()) return;
+  const index = Number($("deleteLabelSel").value);
+  if (!Number.isInteger(index) || index < 0 || index >= LABELS.length) { editorStatus.textContent = "Немає позначки для видалення."; return; }
+  const removed = LABELS.splice(index, 1)[0];
+  afterLabelsChanged();
+  editorStatus.textContent = `Позначку «${removed.name}» видалено.`;
+});
+$("clearLabelsBtn").addEventListener("click", () => {
+  if (!requireDev()) return;
+  if (!confirm("Видалити всі позначки країн і міст?")) return;
+  LABELS = [];
+  afterLabelsChanged();
+  editorStatus.textContent = "Усі позначки видалено.";
 });
 
 const themeInput = $("themeInput");
@@ -1674,7 +2002,7 @@ if (!hasLocalSave) {
     .then(json => {
       if (!json || hasLocalSave) return;
       const parsed = parseNetworkData(json);
-      NODES = parsed.nodes; ROADS = parsed.roads; calibration = parsed.calibration; calibrationPoints = parsed.calibrationPoints;
+      NODES = parsed.nodes; ROADS = parsed.roads; calibration = parsed.calibration; calibrationPoints = parsed.calibrationPoints; if (parsed.labels) LABELS = parsed.labels;
       renderMapData();
     })
     .catch(() => { /* data.json відсутній — працюємо з вбудованими даними */ });
